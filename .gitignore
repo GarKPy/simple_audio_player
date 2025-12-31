@@ -16,6 +16,7 @@
 *.ipr
 *.iws
 .idea/
+.vscode/
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
@@ -51,6 +52,8 @@ app.*.map.json
 **/android/local.properties
 **/android/.navigation/
 **/android/captures/
+**/android/.idea/
+**/android/.cxx/
 
 # iOS
 **/ios/Flutter/Generated.xcconfig
@@ -59,6 +62,8 @@ app.*.map.json
 **/ios/Flutter/app.zip
 **/ios/ServiceDefinitions.json
 **/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/Pods/
+**/macos/Pods/
 
 # macOS
 **/macos/Flutter/GeneratedPluginRegistrant.swift
@@ -67,7 +72,14 @@ app.*.map.json
 # Windows
 windows/flutter/ephemeral
 windows/flutter/ephemeral/
+windows/Runner/GeneratedPluginRegistrant.*
 
 # Linux
 linux/flutter/ephemeral
 linux/flutter/ephemeral/
+linux/Runner/GeneratedPluginRegistrant.*
+
+# Secrets / keys (VERY important if you build Android)
+*.jks
+*.keystore
+key.properties
