@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/file_browser_provider.dart';
-import '../providers/app_providers.dart';
+import 'package:simple_player/providers/app_providers.dart';
+import 'package:simple_player/providers/file_browser_provider.dart';
 import 'package:path/path.dart' as p;
 
 class FileBrowserWidget extends ConsumerWidget {
@@ -11,83 +11,139 @@ class FileBrowserWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(fileBrowserProvider);
     final notifier = ref.read(fileBrowserProvider.notifier);
+
     final pinned = ref.watch(pinnedFoldersProvider);
     final pinnedNotifier = ref.read(pinnedFoldersProvider.notifier);
-
-    print("FileBrowserWidget");
-
+    print("-----FileBrowserWidget");
     return Column(
       children: [
-        _BrowserTopBar(state: state, notifier: notifier),
+        _PathBar(state: state, notifier: notifier),
         Expanded(
-          child: state.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : state.error != null
-              ? Center(child: Text(state.error!))
-              : ListView.builder(
-                  itemCount: state.items.length,
-                  itemBuilder: (context, index) {
-                    final item = state.items[index];
-                    return ListTile(
-                      leading: Icon(
-                        item.isDirectory ? Icons.folder : Icons.music_note,
-                        color: item.isDirectory ? Colors.amber : Colors.blue,
-                      ),
-                      title: Text(item.name),
-                      trailing: item.isDirectory
-                          ? IconButton(
-                              icon: const Icon(Icons.push_pin_outlined),
-                              onPressed: () {
-                                print(
-                                  "------------Pinned folder added ${item.path}",
-                                );
-                                //pinnedNotifier.addFolder(item.path, item.name);
-                              },
-                            )
-                          : null,
-                      onTap: () {
-                        if (item.isDirectory) {
-                          notifier.navigateTo(item.path);
-                        } else {
-                          ref
-                              .read(playerProvider.notifier)
-                              .play(item.path, title: item.name);
-                        }
-                      },
-                    );
-                  },
-                ),
+          child: _buildBody(context, state, notifier, pinned, pinnedNotifier),
         ),
       ],
     );
   }
+
+  Widget _buildBody(
+    BuildContext context,
+    FileBrowserState state,
+    FileBrowserNotifier notifier,
+    List<String> pinned,
+    PinnedFoldersNotifier pinnedNotifier,
+  ) {
+    if (state.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (state.error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "Error: ${state.error}",
+                style: const TextStyle(color: Colors.red),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: notifier.goBack,
+                child: const Text("Go Back"),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (state.items.isEmpty) {
+      return const Center(child: Text("Folder is empty or access denied"));
+    }
+
+    return ListView.builder(
+      itemCount: state.items.length,
+      itemBuilder: (context, index) {
+        final item = state.items[index];
+        return ListTile(
+          leading: Icon(
+            item.isDirectory ? Icons.folder : Icons.music_note,
+            color: item.isDirectory ? Colors.amber : Colors.blue,
+          ),
+          title: Text(item.name),
+          trailing: IconButton(
+            icon: Icon(
+              pinned.contains(item.path)
+                  ? Icons.push_pin
+                  : Icons.push_pin_outlined,
+            ),
+            onPressed: item.isDirectory
+                ? () => pinnedNotifier.toggle(item.path)
+                : null,
+          ),
+          onTap: () {
+            if (item.isDirectory) {
+              notifier.navigateTo(item.path);
+            } else {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text("Playing: ${item.name}")));
+            }
+          },
+        );
+      },
+    );
+  }
 }
 
-class _BrowserTopBar extends StatelessWidget {
+class _PathBar extends StatelessWidget {
   final FileBrowserState state;
   final FileBrowserNotifier notifier;
 
-  const _BrowserTopBar({required this.state, required this.notifier});
+  const _PathBar({required this.state, required this.notifier});
 
   @override
   Widget build(BuildContext context) {
+    String pathText = "Select Storage";
+    IconData? icon;
+
+    if (!state.isRootScreen) {
+      if (state.storages.isNotEmpty) {
+        icon = state.rootPath == "/storage/emulated/0"
+            ? Icons.phone_android_sharp
+            : Icons.sd_card_sharp;
+
+        final relative = p.relative(state.currentPath, from: state.rootPath);
+        pathText = relative == "." ? "" : "/ $relative";
+      }
+    }
+
+    Widget pathTextWidget = Row(
+      children: [
+        if (icon != null) Icon(icon, size: 20, color: Colors.blueGrey),
+        if (icon != null) const SizedBox(width: 4),
+        Text(
+          pathText,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      color: Colors.black12,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Row(
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_upward),
-            onPressed: () {
-              print("BACK PRESSED");
-              state.isRootScreen ? null : notifier.goBack;
-            },
+            onPressed: state.isRootScreen ? null : notifier.goBack,
           ),
           Expanded(
-            child: Text(
-              state.isRootScreen ? "Select Storage" : state.currentPath,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: pathTextWidget,
             ),
           ),
         ],

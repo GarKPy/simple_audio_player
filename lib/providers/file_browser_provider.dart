@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'app_providers.dart';
 
 class FileBrowserItem {
   final String path;
@@ -210,19 +209,6 @@ class FileBrowserNotifier extends StateNotifier<FileBrowserState> {
   Future<void> togglePin(FileBrowserItem item) async {
     print("togglePin");
     print(item.isPinned);
-    // if (item.isPinned) {
-    //   ref.read(pinnedFoldersProvider.notifier).removeFolder_byPath(item.path);
-    // } else {
-    //   ref.read(pinnedFoldersProvider.notifier).addFolder(item.path, item.name);
-    // }
-    // state = state.copyWith(
-    //       items: state.items.map((e) {
-    //         if (e.path == item.path) {
-    //           return e.copyWith(isPinned: !e.isPinned);
-    //         }
-    //         return e;
-    //       }).toList(),
-    //     );
   }
 }
 

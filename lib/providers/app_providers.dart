@@ -1,12 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_ce_flutter/adapters.dart';
-import 'package:simple_player/providers/file_browser_provider.dart';
 import '../models/playlist.dart';
-
-// --- Tab Navigation ---
-enum AppTab { browser, playlist, settings }
-
-final tabProvider = StateProvider<AppTab>((ref) => AppTab.browser);
 
 // --- Pinned Folders ---
 final pinnedFoldersProvider =
@@ -36,43 +30,6 @@ class PinnedFoldersNotifier extends Notifier<List<String>> {
 
   bool isPinned(String path) => state.contains(path);
 }
-
-// --- Pinned Folders Old ---
-// final pinnedFoldersProviderOld =
-//     StateNotifierProvider<PinnedFoldersNotifier, List<PinnedFolder>>((ref) {
-//       return PinnedFoldersNotifier();
-//     });
-
-// class PinnedFoldersNotifier extends StateNotifier<List<PinnedFolder>> {
-//   PinnedFoldersNotifier() : super([]) {
-//     print("+++++++++++++++Pinned folder ");
-//     _init();
-//   }
-
-//   late Box<PinnedFolder> _box;
-
-//   Future<void> _init() async {
-//     _box = await Hive.openBox<PinnedFolder>('pinned_folders');
-//     state = _box.values.toList();
-//   }
-
-//   Future<void> addFolder(String path, String name) async {
-//     print("////////////////Pinned folder added ");
-//     final folder = PinnedFolder(path: path, name: name);
-//     await _box.add(folder);
-//     state = _box.values.toList();
-//   }
-
-//   Future<void> removeFolder(int index) async {
-//     await _box.deleteAt(index);
-//     state = _box.values.toList();
-//   }
-
-//   Future<void> removeFolder_byPath(String path) async {
-//     await _box.delete(path);
-//     state = _box.values.toList();
-//   }
-// }
 
 // --- Playlists ---
 final playlistsProvider =
