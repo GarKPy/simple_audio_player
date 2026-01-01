@@ -42,26 +42,54 @@ class PlaylistsNotifier extends StateNotifier<List<Playlist>> {
     _init();
   }
 
-  late Box<Playlist> _box;
+  late final Box<Playlist> _box;
 
   Future<void> _init() async {
-    _box = await Hive.openBox<Playlist>('playlists');
+    _box = Hive.box<Playlist>('playlists');
+    if (_box.isEmpty) {
+      final favorites = Playlist(name: 'Favorites', songPaths: []);
+      await _box.add(favorites);
+    } else {
+      if (!_box.values.any((p) => p.name == 'Favorites')) {
+        await _box.add(Playlist(name: 'Favorites', songPaths: []));
+      }
+    }
     state = _box.values.toList();
   }
 
   Future<void> createPlaylist(String name) async {
+    if (_box.values.any((p) => p.name == name)) return; // Prevent duplicates
     final playlist = Playlist(name: name, songPaths: []);
     await _box.add(playlist);
     state = _box.values.toList();
   }
 
-  Future<void> updatePlaylist(int index, Playlist playlist) async {
-    await _box.putAt(index, playlist);
+  Future<void> deletePlaylist(Playlist playlist) async {
+    // deleting by object matching reference or we need key
+    // HiveObject has delete()
+    await playlist.delete();
+    // or _box.delete(key) if we knew it.
+    // simpler to refresh state
     state = _box.values.toList();
   }
 
-  Future<void> deletePlaylist(int index) async {
-    await _box.deleteAt(index);
+  // Method to add songs to a playlist
+  Future<void> addSongsToPlaylist(Playlist playlist, List<String> paths) async {
+    playlist.songPaths.addAll(paths);
+    await playlist.save();
+    state = _box.values.toList();
+  }
+
+  // Method to remove song from playlist
+  Future<void> removeSongFromPlaylist(Playlist playlist, int index) async {
+    playlist.songPaths.removeAt(index);
+    await playlist.save();
+    state = _box.values.toList();
+  }
+
+  Future<void> setLastPlayed(Playlist playlist, int index) async {
+    playlist.lastPlayedIndex = index;
+    await playlist.save();
     state = _box.values.toList();
   }
 }

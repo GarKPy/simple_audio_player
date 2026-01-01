@@ -22,7 +22,7 @@ class PlaylistAdapter extends TypeAdapter<Playlist> {
       lastPlayedIndex: fields[2] == null ? 0 : (fields[2] as num).toInt(),
       lastPlayedPosition: fields[3] == null ? 0 : (fields[3] as num).toInt(),
       shuffle: fields[4] == null ? false : fields[4] as bool,
-      repeatMode: fields[5] == null ? RepeatMode.none : fields[5] as RepeatMode,
+      repeatMode: fields[5] == null ? 0 : (fields[5] as num).toInt(),
     );
   }
 

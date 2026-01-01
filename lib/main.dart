@@ -12,6 +12,7 @@ void main() async {
   Hive.registerAdapter(PlaylistAdapter());
 
   await Hive.openBox<List<String>>('pinned_folders');
+  await Hive.openBox<Playlist>('playlists');
 
   runApp(const ProviderScope(child: MainApp()));
 }

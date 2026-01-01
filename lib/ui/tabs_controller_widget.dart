@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:simple_player/ui/browser_view_widget.dart';
+import 'package:simple_player/ui/playlist_tab.dart';
 import 'package:simple_player/models/tab_model.dart';
 import 'package:simple_player/providers/tab_provider.dart';
 
 final List<AppTab> appTabs = [
   AppTab(name: 'Browser', icon: Icons.search, content: BrowserView()),
-  AppTab(name: 'Playlist', icon: Icons.queue_music, content: PlaylistTab()),
+  AppTab(
+    name: 'Playlist',
+    icon: Icons.queue_music,
+    content: const PlaylistTab(),
+  ),
   AppTab(name: 'Settings', icon: Icons.settings, content: SettingsTab()),
 ];
 
@@ -29,8 +34,7 @@ class TabControllerWidget extends ConsumerWidget {
           unselectedLabelColor: Colors.white70,
         ),
         // Tab content
-        SizedBox(
-          height: 400, // or wrap in Expanded depending on your layout
+        Expanded(
           child: IndexedStack(
             index: currentIndex,
             children: appTabs.map((tab) => tab.content).toList(),
@@ -41,16 +45,11 @@ class TabControllerWidget extends ConsumerWidget {
   }
 }
 
-// Dummy tabs
+// Dummy tabs (Settings still dummy for now)
 
 class BrowserTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(child: Text("Browser"));
-}
-
-class PlaylistTab extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => Center(child: Text("Playlist"));
 }
 
 class SettingsTab extends StatelessWidget {

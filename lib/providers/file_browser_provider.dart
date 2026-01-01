@@ -73,7 +73,9 @@ class FileBrowserState {
 }
 
 class FileBrowserNotifier extends StateNotifier<FileBrowserState> {
-  FileBrowserNotifier(this.ref) : super(FileBrowserState());
+  FileBrowserNotifier(this.ref) : super(FileBrowserState()) {
+    print("FileBrowserNotifier created: $hashCode");
+  }
 
   final Ref ref;
 
@@ -130,6 +132,17 @@ class FileBrowserNotifier extends StateNotifier<FileBrowserState> {
   }
 
   Future<void> navigateTo(String path, {bool setRoot = false}) async {
+    final parts = path.split('/');
+    if (parts.length >= 4 && parts[1] == "storage") {
+      final root = "/storage/${parts[2]}";
+      final isPrimary = root == "/storage/emulated";
+      state = state.copyWith(
+        rootPath: isPrimary ? "/storage/emulated/0" : root,
+        isRootScreen: false,
+        currentPath: path,
+      );
+    }
+
     try {
       state = state.copyWith(isLoading: true, error: null);
       if (state.isRootScreen) {
@@ -137,7 +150,6 @@ class FileBrowserNotifier extends StateNotifier<FileBrowserState> {
           state = state.copyWith(error: "Storage permission denied");
           return;
         }
-        state = state.copyWith(isRootScreen: false, rootPath: path);
       }
       final dir = Directory(path);
       if (!await dir.exists()) {
@@ -194,8 +206,9 @@ class FileBrowserNotifier extends StateNotifier<FileBrowserState> {
   }
 
   Future<void> goBack() async {
-    if (state.isRootScreen) return;
-    if (p.normalize(state.currentPath) == p.normalize(state.rootPath!)) {
+    if (state.storages.any(
+      (item) => p.normalize(item.path) == p.normalize(state.currentPath),
+    )) {
       state = state.copyWith(
         isRootScreen: true,
         currentPath: "",

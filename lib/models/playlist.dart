@@ -21,7 +21,7 @@ class Playlist extends HiveObject {
   bool shuffle;
 
   @HiveField(5)
-  RepeatMode repeatMode;
+  int repeatMode;
 
   Playlist({
     required this.name,
@@ -29,6 +29,6 @@ class Playlist extends HiveObject {
     this.lastPlayedIndex = 0,
     this.lastPlayedPosition = 0,
     this.shuffle = false,
-    this.repeatMode = RepeatMode.none,
+    this.repeatMode = 0,
   });
 }
