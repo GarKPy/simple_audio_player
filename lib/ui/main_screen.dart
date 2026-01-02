@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:simple_player/ui/tabs_controller_widget.dart';
-import 'widgets.dart';
+import 'player_area.dart';
 
 class MainScreen extends ConsumerWidget {
   const MainScreen({super.key});

@@ -3,14 +3,10 @@
 // Check in to version control
 
 import 'package:hive_ce/hive.dart';
-import 'package:simple_player/models/favorite.dart';
 import 'package:simple_player/models/playlist.dart';
-import 'package:simple_player/models/repeat_mode.dart';
 
 extension HiveRegistrar on HiveInterface {
   void registerAdapters() {
-    registerAdapter(FavoriteAdapter());
     registerAdapter(PlaylistAdapter());
-    registerAdapter(RepeatModeAdapter());
   }
 }

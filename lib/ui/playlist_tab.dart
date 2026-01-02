@@ -11,13 +11,72 @@ class PlaylistTab extends ConsumerStatefulWidget {
 }
 
 class _PlaylistTabState extends ConsumerState<PlaylistTab> {
-  int _selectedPlaylistIndex = 0;
+  final ScrollController _scrollController = ScrollController();
+
+  void _scrollToCurrentSong(List<String> songPaths) {
+    // We need to know which song is currently playing and if it belongs to this playlist
+    final playerState = ref.read(playerProvider);
+    print(
+      "AutoScroll: Checking scroll. CurrentPath: ${playerState.currentSongPath}",
+    );
+    // This check is a bit tricky:
+    // If the currently playing song is IN this playlist, we scroll to it.
+    // However, song paths are just strings. We should check if playerState.currentPlaylist matches?
+    // User request: "make playing track focused/visible".
+    // If we are viewing a playlist that contains the currently playing file, we should scroll to it.
+
+    // Simple check: specific file path match.
+    if (playerState.currentSongPath != null) {
+      final index = songPaths.indexOf(playerState.currentSongPath!);
+      print("AutoScroll: Index in playlist: $index");
+      if (index != -1) {
+        // Scroll to index * itemHeight. Let's estimate itemHeight ~ 72.0 (ListTile default)
+        if (_scrollController.hasClients) {
+          print("AutoScroll: Animating to ${index * 80.0}");
+          _scrollController.animateTo(
+            index * 80.0,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        } else {
+          print("AutoScroll: Controller has no clients");
+        }
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final playlists = ref.read(playlistsProvider);
+      final index = ref.read(selectedPlaylistIndexProvider);
+      if (index < playlists.length) {
+        _scrollToCurrentSong(playlists[index].songPaths);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     print("PlaylistTab: build called");
     final playlists = ref.watch(playlistsProvider);
+    var selectedPlaylistIndex = ref.watch(selectedPlaylistIndexProvider);
+
+    // Listen for playlist selection changes to scroll
+    ref.listen(selectedPlaylistIndexProvider, (previous, next) {
+      if (next < playlists.length) {
+        _scrollToCurrentSong(playlists[next].songPaths);
+      }
+    });
     print("PlaylistTab: playlists count: ${playlists.length}");
+    final playerState = ref.watch(playerProvider);
 
     // Safety check if playlists is empty (shouldn't be, due to init)
     if (playlists.isEmpty) {
@@ -25,15 +84,38 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
     }
 
     // Ensure index is valid
-    if (_selectedPlaylistIndex >= playlists.length) {
-      _selectedPlaylistIndex = 0;
+    if (selectedPlaylistIndex >= playlists.length) {
+      selectedPlaylistIndex = 0;
+      // Defer state update to next frame to avoid build error, or just rely on local var correction for this build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(selectedPlaylistIndexProvider.notifier).state = 0;
+      });
     }
 
-    final selectedPlaylist = playlists[_selectedPlaylistIndex];
+    final selectedPlaylist = playlists[selectedPlaylistIndex];
 
-    // return Center(
-    //   child: Text("Playlist Tab Debug: ${playlists.length} playlists"),
-    // );
+    // Listen for song changes to auto-scroll
+    ref.listen(playerProvider, (previous, next) {
+      bool shouldScroll = false;
+
+      // Condition 1: Song path changed
+      if (previous?.currentSongPath != next.currentSongPath &&
+          next.currentSongPath != null) {
+        shouldScroll = true;
+      }
+
+      // Condition 2: Started playing (and path matches) - useful if paused on a track then resumed/started
+      if (previous?.isPlaying == false && next.isPlaying == true) {
+        shouldScroll = true;
+      }
+
+      if (shouldScroll) {
+        print(
+          "AutoScroll: Triggered by listen. Path: ${next.currentSongPath}, Playing: ${next.isPlaying}",
+        );
+        _scrollToCurrentSong(selectedPlaylist.songPaths);
+      }
+    });
 
     return Column(
       children: [
@@ -52,7 +134,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                       const SizedBox(width: 8),
                   itemBuilder: (context, index) {
                     final playlist = playlists[index];
-                    final isSelected = index == _selectedPlaylistIndex;
+                    final isSelected = index == selectedPlaylistIndex;
                     return Center(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -66,9 +148,12 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                           child: InkWell(
                             borderRadius: BorderRadius.circular(20),
                             onTap: () {
-                              setState(() {
-                                _selectedPlaylistIndex = index;
-                              });
+                              ref
+                                      .read(
+                                        selectedPlaylistIndexProvider.notifier,
+                                      )
+                                      .state =
+                                  index;
                             },
                             onLongPress: () {
                               if (playlist.name == 'Favorites') return;
@@ -124,15 +209,18 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                   ),
                 )
               : ListView.builder(
+                  controller: _scrollController,
                   itemCount: selectedPlaylist.songPaths.length,
                   itemBuilder: (context, index) {
                     final songPath = selectedPlaylist.songPaths[index];
                     final isLastPlayed =
-                        index == selectedPlaylist.lastPlayedIndex;
+                        (playerState.currentSongPath == songPath) ||
+                        (playerState.currentSongPath == null &&
+                            index == selectedPlaylist.lastPlayedIndex);
 
                     return ListTile(
                       title: Text(p.basename(songPath)),
-                      subtitle: Text(songPath),
+                      //subtitle: Text(songPath),
                       leading: Icon(
                         Icons.music_note,
                         color: isLastPlayed
@@ -155,7 +243,10 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
 
                         ref
                             .read(playerProvider.notifier)
-                            .play(songPath, title: p.basename(songPath));
+                            .playPlaylist(
+                              selectedPlaylist,
+                              initialIndex: index,
+                            );
                       },
                     );
                   },
@@ -216,11 +307,11 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
             FilledButton(
               onPressed: () {
                 ref.read(playlistsProvider.notifier).deletePlaylist(playlist);
-                if (_selectedPlaylistIndex >= 1) {
-                  _selectedPlaylistIndex =
-                      0; // Reset to favorites or safer index
+                final currentIndex = ref.read(selectedPlaylistIndexProvider);
+                if (currentIndex >= 1) {
+                  ref.read(selectedPlaylistIndexProvider.notifier).state = 0;
                 }
-                setState(() {});
+                // setState(() {}); // Not needed as provider update triggers rebuild
                 Navigator.of(context).pop();
               },
               child: const Text("Delete"),

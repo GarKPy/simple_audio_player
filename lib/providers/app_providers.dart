@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_ce_flutter/adapters.dart';
 import '../models/playlist.dart';
+export 'player_provider.dart';
 
 // --- Pinned Folders ---
 final pinnedFoldersProvider =
@@ -32,6 +33,8 @@ class PinnedFoldersNotifier extends Notifier<List<String>> {
 }
 
 // --- Playlists ---
+final selectedPlaylistIndexProvider = StateProvider<int>((ref) => 0);
+
 final playlistsProvider =
     StateNotifierProvider<PlaylistsNotifier, List<Playlist>>((ref) {
       return PlaylistsNotifier();
@@ -91,70 +94,5 @@ class PlaylistsNotifier extends StateNotifier<List<Playlist>> {
     playlist.lastPlayedIndex = index;
     await playlist.save();
     state = _box.values.toList();
-  }
-}
-
-// --- Player State ---
-class PlayerState {
-  final String? currentSongPath;
-  final bool isPlaying;
-  final int position;
-  final int duration;
-  final String? artist;
-  final String? title;
-
-  PlayerState({
-    this.currentSongPath,
-    this.isPlaying = false,
-    this.position = 0,
-    this.duration = 0,
-    this.artist,
-    this.title,
-  });
-
-  PlayerState copyWith({
-    String? currentSongPath,
-    bool? isPlaying,
-    int? position,
-    int? duration,
-    String? artist,
-    String? title,
-  }) {
-    return PlayerState(
-      currentSongPath: currentSongPath ?? this.currentSongPath,
-      isPlaying: isPlaying ?? this.isPlaying,
-      position: position ?? this.position,
-      duration: duration ?? this.duration,
-      artist: artist ?? this.artist,
-      title: title ?? this.title,
-    );
-  }
-}
-
-final playerProvider = StateNotifierProvider<PlayerNotifier, PlayerState>((
-  ref,
-) {
-  return PlayerNotifier();
-});
-
-class PlayerNotifier extends StateNotifier<PlayerState> {
-  PlayerNotifier() : super(PlayerState());
-
-  void play(String path, {String? artist, String? title}) {
-    state = state.copyWith(
-      currentSongPath: path,
-      isPlaying: true,
-      artist: artist,
-      title: title,
-    );
-    // TODO: Audio playback logic
-  }
-
-  void togglePlay() {
-    state = state.copyWith(isPlaying: !state.isPlaying);
-  }
-
-  void seek(int position) {
-    state = state.copyWith(position: position);
   }
 }

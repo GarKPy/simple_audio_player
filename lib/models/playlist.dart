@@ -1,5 +1,4 @@
 import 'package:hive_ce/hive_ce.dart';
-import 'repeat_mode.dart';
 
 part 'playlist.g.dart';
 
