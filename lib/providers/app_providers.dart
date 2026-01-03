@@ -207,4 +207,32 @@ class PlaylistsNotifier extends StateNotifier<List<Playlist>> {
     final seconds = duration.inSeconds.remainder(60);
     return "$minutes:${seconds.toString().padLeft(2, '0')}";
   }
+
+  // --- Duration Caching ---
+  Future<Duration?> getCachedDuration(String path) async {
+    final box = Hive.box<int>('audio_durations');
+
+    if (box.containsKey(path)) {
+      return Duration(milliseconds: box.get(path)!);
+    }
+
+    final duration = await getAudioDuration(path);
+    if (duration != null) {
+      box.put(path, duration.inMilliseconds);
+    }
+    return duration;
+  }
+
+  Future<Duration?> getAudioDuration(String path) async {
+    final player = AudioPlayer();
+    try {
+      final duration = await player.setFilePath(path);
+      return duration;
+    } catch (e) {
+      print("Error fetching duration for $path: $e");
+      return null;
+    } finally {
+      await player.dispose();
+    }
+  }
 }

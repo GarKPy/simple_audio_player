@@ -14,6 +14,7 @@ void main() async {
 
   await Hive.openBox<List<String>>('pinned_folders');
   await Hive.openBox<Playlist>('playlists');
+  await Hive.openBox<int>('audio_durations');
 
   runApp(const ProviderScope(child: MainApp()));
 }
