@@ -246,7 +246,9 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            _formatDuration(songMeta?.durationMs),
+                            PlaylistsNotifier.formatDuration(
+                              songMeta?.durationMs,
+                            ),
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                           const SizedBox(width: 8),
@@ -281,14 +283,6 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
         ),
       ],
     );
-  }
-
-  String _formatDuration(int? ms) {
-    if (ms == null || ms == 0) return "--:--";
-    final duration = Duration(milliseconds: ms);
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds.remainder(60);
-    return "$minutes:${seconds.toString().padLeft(2, '0')}";
   }
 
   void _showCreatePlaylistDialog(BuildContext context) {

@@ -75,12 +75,23 @@ class FileBrowserWidget extends ConsumerWidget {
       itemCount: state.items.length,
       itemBuilder: (context, index) {
         final item = state.items[index];
+        final playlistsNotifier = ref.read(playlistsProvider.notifier);
+        final metadata = !item.isDirectory
+            ? playlistsNotifier.getMetadataForPath(item.path)
+            : null;
+
         return ListTile(
           leading: Icon(
             item.isDirectory ? Icons.folder : Icons.music_note,
             color: item.isDirectory ? Colors.amber : Colors.blue,
           ),
           title: Text(item.name),
+          subtitle: metadata != null
+              ? Text(
+                  "${metadata.artist ?? 'Unknown Artist'} • ${PlaylistsNotifier.formatDuration(metadata.durationMs)}",
+                  style: Theme.of(context).textTheme.bodySmall,
+                )
+              : null,
           trailing: IconButton(
             icon: Icon(
               item.isDirectory

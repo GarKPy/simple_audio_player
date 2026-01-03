@@ -188,4 +188,23 @@ class PlaylistsNotifier extends StateNotifier<List<Playlist>> {
     await playlist.save();
     state = _box.values.toList();
   }
+
+  // --- Helpers for other widgets ---
+  SongMetadata? getMetadataForPath(String path) {
+    for (var playlist in state) {
+      if (playlist.songs != null) {
+        final song = playlist.songs!.where((s) => s.path == path).firstOrNull;
+        if (song != null) return song;
+      }
+    }
+    return null;
+  }
+
+  static String formatDuration(int? ms) {
+    if (ms == null || ms == 0) return "--:--";
+    final duration = Duration(milliseconds: ms);
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds.remainder(60);
+    return "$minutes:${seconds.toString().padLeft(2, '0')}";
+  }
 }
