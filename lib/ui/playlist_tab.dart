@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
+import '../models/playlist.dart';
 import 'package:path/path.dart' as p;
 
 class PlaylistTab extends ConsumerStatefulWidget {
@@ -213,14 +214,27 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                   itemCount: selectedPlaylist.songPaths.length,
                   itemBuilder: (context, index) {
                     final songPath = selectedPlaylist.songPaths[index];
+                    final songMeta = selectedPlaylist.songs?.firstWhere(
+                      (s) => s.path == songPath,
+                      orElse: () => SongMetadata(path: songPath),
+                    );
+
                     final isLastPlayed =
                         (playerState.currentSongPath == songPath) ||
                         (playerState.currentSongPath == null &&
                             index == selectedPlaylist.lastPlayedIndex);
 
                     return ListTile(
-                      title: Text(p.basename(songPath)),
-                      //subtitle: Text(songPath),
+                      title: Text(
+                        songMeta?.title ?? p.basename(songPath),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        songMeta?.artist ?? "Unknown Artist",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       leading: Icon(
                         Icons.music_note,
                         color: isLastPlayed
@@ -228,13 +242,26 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                             : null,
                       ),
                       selected: isLastPlayed,
-                      trailing: IconButton(
-                        icon: const Icon(Icons.remove_circle_outline),
-                        onPressed: () {
-                          ref
-                              .read(playlistsProvider.notifier)
-                              .removeSongFromPlaylist(selectedPlaylist, index);
-                        },
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _formatDuration(songMeta?.durationMs),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: () {
+                              ref
+                                  .read(playlistsProvider.notifier)
+                                  .removeSongFromPlaylist(
+                                    selectedPlaylist,
+                                    index,
+                                  );
+                            },
+                          ),
+                        ],
                       ),
                       onTap: () {
                         ref
@@ -254,6 +281,14 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
         ),
       ],
     );
+  }
+
+  String _formatDuration(int? ms) {
+    if (ms == null || ms == 0) return "--:--";
+    final duration = Duration(milliseconds: ms);
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds.remainder(60);
+    return "$minutes:${seconds.toString().padLeft(2, '0')}";
   }
 
   void _showCreatePlaylistDialog(BuildContext context) {

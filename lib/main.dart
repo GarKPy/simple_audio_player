@@ -10,6 +10,7 @@ void main() async {
 
   // Register adapters
   Hive.registerAdapter(PlaylistAdapter());
+  Hive.registerAdapter(SongMetadataAdapter());
 
   await Hive.openBox<List<String>>('pinned_folders');
   await Hive.openBox<Playlist>('playlists');

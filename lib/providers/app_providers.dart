@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_ce_flutter/adapters.dart';
+import 'package:flutter_media_metadata/flutter_media_metadata.dart';
+import 'package:just_audio/just_audio.dart';
+import 'dart:io';
 import '../models/playlist.dart';
 export 'player_provider.dart';
 
@@ -58,6 +61,73 @@ class PlaylistsNotifier extends StateNotifier<List<Playlist>> {
       }
     }
     state = _box.values.toList();
+
+    // Background refresh for songs missing metadata
+    _refreshAllMetadata();
+  }
+
+  Future<void> _refreshAllMetadata() async {
+    bool changed = false;
+    final player = AudioPlayer();
+    for (var playlist in state) {
+      bool playlistChanged = false;
+      playlist.songs ??= [];
+
+      // If songs list is empty but songPaths is not, or lengths mismatch
+      if (playlist.songs!.length != playlist.songPaths.length) {
+        for (var path in playlist.songPaths) {
+          if (!playlist.songs!.any((s) => s.path == path)) {
+            final songMeta = await _fetchMetadata(path, player);
+            playlist.songs!.add(songMeta);
+            playlistChanged = true;
+          }
+        }
+      }
+
+      if (playlistChanged) {
+        await playlist.save();
+        changed = true;
+      }
+    }
+    await player.dispose();
+    if (changed) {
+      state = _box.values.toList();
+    }
+  }
+
+  Future<SongMetadata> _fetchMetadata(String path, AudioPlayer player) async {
+    String? title;
+    String? artist;
+    String? album;
+    int? durationMs;
+
+    try {
+      final metadata = await MetadataRetriever.fromFile(File(path));
+      title = metadata.trackName;
+      artist = metadata.trackArtistNames?.join(', ');
+      album = metadata.albumName;
+      durationMs = metadata.trackDuration;
+    } catch (e) {
+      print("Error fetching metadata for $path: $e");
+    }
+
+    // Use just_audio for duration as requested by user
+    try {
+      final duration = await player.setFilePath(path);
+      if (duration != null) {
+        durationMs = duration.inMilliseconds;
+      }
+    } catch (e) {
+      print("Error fetching duration with just_audio for $path: $e");
+    }
+
+    return SongMetadata(
+      path: path,
+      title: title,
+      artist: artist,
+      album: album,
+      durationMs: durationMs,
+    );
   }
 
   Future<void> createPlaylist(String name) async {
@@ -78,14 +148,37 @@ class PlaylistsNotifier extends StateNotifier<List<Playlist>> {
 
   // Method to add songs to a playlist
   Future<void> addSongsToPlaylist(Playlist playlist, List<String> paths) async {
-    playlist.songPaths.addAll(paths);
+    final player = AudioPlayer();
+    for (final path in paths) {
+      if (!playlist.songPaths.contains(path)) {
+        playlist.songPaths.add(path);
+      }
+
+      final songMeta = await _fetchMetadata(path, player);
+      playlist.songs ??= [];
+
+      final existingIndex = playlist.songs!.indexWhere((s) => s.path == path);
+      if (existingIndex != -1) {
+        playlist.songs![existingIndex] = songMeta;
+      } else {
+        playlist.songs!.add(songMeta);
+      }
+    }
+    await player.dispose();
     await playlist.save();
     state = _box.values.toList();
   }
 
   // Method to remove song from playlist
   Future<void> removeSongFromPlaylist(Playlist playlist, int index) async {
+    final pathToRemove = playlist.songPaths[index];
     playlist.songPaths.removeAt(index);
+
+    // Also remove from songs metadata list
+    if (playlist.songs != null) {
+      playlist.songs!.removeWhere((s) => s.path == pathToRemove);
+    }
+
     await playlist.save();
     state = _box.values.toList();
   }

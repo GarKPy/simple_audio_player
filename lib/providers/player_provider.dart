@@ -99,6 +99,13 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     _player.loopModeStream.listen((mode) {
       state = state.copyWith(loopMode: mode);
     });
+
+    _player.playbackEventStream.listen((event) {});
+
+    // Listen to the new errorStream as requested
+    _player.errorStream.listen((error) {
+      print("Playback error: $error");
+    });
   }
 
   Future<void> _updateCurrentSongInfo(int index) async {
@@ -108,13 +115,17 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
       return;
 
     final path = _activePlaylist!.songPaths[index];
-    // Here you would optimally parse metadata. For now, using filename.
-    final filename = path.split('/').last;
+
+    // Find metadata in the playlist
+    final songMeta = _activePlaylist!.songs?.firstWhere(
+      (s) => s.path == path,
+      orElse: () => SongMetadata(path: path),
+    );
 
     state = state.copyWith(
       currentSongPath: path,
-      title: filename, // Temporary fallback
-      artist: 'Unknown Artist', // JSON/Metadata parsing needed later
+      title: songMeta?.title ?? path.split('/').last,
+      artist: songMeta?.artist ?? 'Unknown Artist',
     );
 
     // Save functionality
@@ -148,7 +159,6 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     final audioSources = playlist.songPaths
         .map((path) => AudioSource.file(path))
         .toList();
-    final source = ConcatenatingAudioSource(children: audioSources);
 
     int startIndex = initialIndex ?? playlist.lastPlayedIndex;
     int startPosMs = (initialIndex == null)
@@ -161,8 +171,9 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     if (startPosMs < 0) startPosMs = 0;
 
     try {
-      await _player.setAudioSource(
-        source,
+      // Use the new setAudioSources API for playlists
+      await _player.setAudioSources(
+        audioSources,
         initialIndex: startIndex,
         initialPosition: Duration(milliseconds: startPosMs),
       );

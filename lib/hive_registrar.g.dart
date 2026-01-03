@@ -8,5 +8,6 @@ import 'package:simple_player/models/playlist.dart';
 extension HiveRegistrar on HiveInterface {
   void registerAdapters() {
     registerAdapter(PlaylistAdapter());
+    registerAdapter(SongMetadataAdapter());
   }
 }
