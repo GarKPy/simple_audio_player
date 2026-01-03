@@ -130,24 +130,19 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
 
     // Save functionality
     _activePlaylist!.lastPlayedIndex = index;
-    await _activePlaylist!.save();
+    if (_activePlaylist!.isInBox) {
+      await _activePlaylist!.save();
+    }
   }
 
   void _savePositionDebounced(Duration position) {
-    // Very simple debounce or direct save.
-    // Saving to Hive excessively (every 200ms) might be bad.
-    // Better to save on pause or stop.
-    // But user requested "last played info" which usually implies exact resume.
-    // We will save to a memory variable and flush on pause/dispose?
-    // For now, let's update the model in memory, not save to disk every frame.
     if (_activePlaylist != null) {
       _activePlaylist!.lastPlayedPosition = position.inMilliseconds;
-      // We defer .save() to pause/stop or specific checkpoints
     }
   }
 
   Future<void> _flushStateToHive() async {
-    if (_activePlaylist != null) {
+    if (_activePlaylist != null && _activePlaylist!.isInBox) {
       await _activePlaylist!.save();
     }
   }

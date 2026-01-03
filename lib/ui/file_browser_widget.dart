@@ -3,30 +3,72 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:simple_player/providers/app_providers.dart';
 import 'package:simple_player/providers/file_browser_provider.dart';
+import 'package:simple_player/models/playlist.dart';
 import 'package:path/path.dart' as p;
 
-class FileBrowserWidget extends ConsumerWidget {
+class FileBrowserWidget extends ConsumerStatefulWidget {
   const FileBrowserWidget({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FileBrowserWidget> createState() => _FileBrowserWidgetState();
+}
+
+class _FileBrowserWidgetState extends ConsumerState<FileBrowserWidget> {
+  final ScrollController _scrollController = ScrollController();
+
+  void _scrollToCurrentTrack(String? currentPath, List<FileBrowserItem> items) {
+    if (currentPath == null || !_scrollController.hasClients) return;
+
+    final index = items.indexWhere((item) => item.path == currentPath);
+    if (index != -1) {
+      // Small delay to ensure the list is built
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_scrollController.hasClients) return;
+        final position = index * 72.0; // Estimate tile height
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        _scrollController.animateTo(
+          position.clamp(0.0, maxScroll),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(fileBrowserProvider);
     final notifier = ref.read(fileBrowserProvider.notifier);
 
     final pinned = ref.watch(pinnedFoldersProvider);
     final pinnedNotifier = ref.read(pinnedFoldersProvider.notifier);
-    print("-----FileBrowserWidget");
+
+    final playerState = ref.watch(playerProvider);
+
+    // Listen for track changes to auto-scroll
+    ref.listen(playerProvider.select((s) => s.currentSongPath), (prev, next) {
+      if (next != null) {
+        _scrollToCurrentTrack(next, state.items);
+      }
+    });
+
     return Column(
       children: [
         _PathBar(state: state, notifier: notifier),
         Expanded(
           child: _buildBody(
             context,
-            ref,
             state,
             notifier,
             pinned,
             pinnedNotifier,
+            playerState,
           ),
         ),
       ],
@@ -35,11 +77,11 @@ class FileBrowserWidget extends ConsumerWidget {
 
   Widget _buildBody(
     BuildContext context,
-    WidgetRef ref,
     FileBrowserState state,
     FileBrowserNotifier notifier,
     List<String> pinned,
     PinnedFoldersNotifier pinnedNotifier,
+    PlayerState playerState,
   ) {
     if (state.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -72,17 +114,31 @@ class FileBrowserWidget extends ConsumerWidget {
     }
 
     return ListView.builder(
+      controller: _scrollController,
       itemCount: state.items.length,
       itemBuilder: (context, index) {
         final item = state.items[index];
         final playlistsNotifier = ref.read(playlistsProvider.notifier);
+        final isPlaying = playerState.currentSongPath == item.path;
 
         return ListTile(
+          selected: isPlaying,
           leading: Icon(
-            item.isDirectory ? Icons.folder : Icons.music_note,
-            color: item.isDirectory ? Colors.amber : Colors.blue,
+            item.isDirectory
+                ? Icons.folder
+                : (isPlaying ? Icons.music_note : Icons.music_note_outlined),
+            color: item.isDirectory
+                ? Colors.amber
+                : (isPlaying
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.blue),
           ),
-          title: Text(item.name),
+          title: Text(
+            item.name,
+            style: TextStyle(
+              fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
           subtitle: !item.isDirectory
               ? FutureBuilder<Duration?>(
                   future: playlistsNotifier.getCachedDuration(item.path),
@@ -121,9 +177,6 @@ class FileBrowserWidget extends ConsumerWidget {
                   // Create playlist (safe to call if exists, handled by provider)
                   await playlistsNotifier.createPlaylist(playlistName);
 
-                  // Find the playlist object (it should be in state now)
-                  // We need to re-read the provider to get the updated list?
-                  // createPlaylist updates state.
                   final playlists = ref.read(playlistsProvider);
                   final playlist = playlists.firstWhere(
                     (p) => p.name == playlistName,
@@ -190,9 +243,32 @@ class FileBrowserWidget extends ConsumerWidget {
             if (item.isDirectory) {
               notifier.navigateTo(item.path);
             } else {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text("Playing: ${item.name}")));
+              // Get all audio files from current state to create a temporary playlist
+              final audioItems = state.items
+                  .where((i) => !i.isDirectory)
+                  .toList();
+              final audioPaths = audioItems.map((i) => i.path).toList();
+              final currentIndex = audioPaths.indexOf(item.path);
+
+              if (currentIndex != -1) {
+                final tempPlaylist = Playlist(
+                  name: "Folder: ${p.basename(state.currentPath)}",
+                  songPaths: audioPaths,
+                );
+
+                ref
+                    .read(playerProvider.notifier)
+                    .playPlaylist(tempPlaylist, initialIndex: currentIndex);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      "Playing folder: ${p.basename(state.currentPath)}",
+                    ),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              }
             }
           },
         );
