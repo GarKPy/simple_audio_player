@@ -277,6 +277,19 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                               initialIndex: index,
                             );
                       },
+                      onLongPress: () {
+                        ref
+                            .read(playerProvider.notifier)
+                            .playNext(songPath, selectedPlaylist);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              "Queueing next: ${songMeta?.title ?? p.basename(songPath)}",
+                            ),
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),

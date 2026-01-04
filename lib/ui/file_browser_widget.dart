@@ -238,7 +238,28 @@ class _FileBrowserWidgetState extends ConsumerState<FileBrowserWidget> {
                     }
                   }
                 }
-              : null,
+              : () {
+                  final audioItems = state.items
+                      .where((i) => !i.isDirectory)
+                      .toList();
+                  final audioPaths = audioItems.map((i) => i.path).toList();
+
+                  final tempPlaylist = Playlist(
+                    name: "Folder: ${p.basename(state.currentPath)}",
+                    songPaths: audioPaths,
+                  );
+
+                  ref
+                      .read(playerProvider.notifier)
+                      .playNext(item.path, tempPlaylist);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Queueing next: ${item.name}"),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                },
           onTap: () {
             if (item.isDirectory) {
               notifier.navigateTo(item.path);

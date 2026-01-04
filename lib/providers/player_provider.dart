@@ -166,7 +166,6 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     if (startPosMs < 0) startPosMs = 0;
 
     try {
-      // Use the new setAudioSources API for playlists
       await _player.setAudioSources(
         audioSources,
         initialIndex: startIndex,
@@ -175,6 +174,94 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
       _player.play();
     } catch (e) {
       print("Error loading playlist: $e");
+    }
+  }
+
+  Future<void> playNext(String path, Playlist sourcePlaylist) async {
+    // 1. If no active playlist or source is different, we switch context
+    final isSameContext = _activePlaylist?.name == sourcePlaylist.name;
+
+    if (!isSameContext) {
+      // Switch context:
+      // Keep current playing item, then add the 'playNext' item, then the rest of the new playlist
+      final currentPath = state.currentSongPath;
+
+      List<String> newPaths = [];
+      if (currentPath != null) {
+        newPaths.add(currentPath);
+      }
+      newPaths.add(path);
+
+      // Add rest of sourcePlaylist (excluding 'path' if it's already there)
+      for (final p in sourcePlaylist.songPaths) {
+        if (p != path && p != currentPath) {
+          newPaths.add(p);
+        }
+      }
+
+      final newPlaylist = Playlist(
+        name: sourcePlaylist.name,
+        songPaths: newPaths,
+        songs: sourcePlaylist.songs, // Re-use metadata if available
+      );
+
+      _activePlaylist = newPlaylist;
+      state = state.copyWith(currentPlaylist: newPlaylist);
+
+      final audioSources = newPaths.map((p) => AudioSource.file(p)).toList();
+
+      // Capture current position BEFORE updating sources
+      final currentPos = _player.position;
+
+      // Update source dynamically using the new API
+      await _player.setAudioSources(
+        audioSources,
+        initialIndex: 0,
+        initialPosition: currentPos,
+      );
+      _player.play();
+    } else {
+      // Same context: Just move/insert 'path' to next position
+      final currentIdx = _player.currentIndex ?? 0;
+      final targetIdx = currentIdx + 1;
+
+      // Find if it's already in the queue
+      final existingIdx = _activePlaylist!.songPaths.indexOf(path);
+
+      if (existingIdx != -1) {
+        if (existingIdx == targetIdx) return; // Already there
+
+        // Update using direct AudioPlayer method
+        await _player.moveAudioSource(existingIdx, targetIdx);
+
+        // Update internal list
+        final paths = List<String>.from(_activePlaylist!.songPaths);
+        final movedPath = paths.removeAt(existingIdx);
+        paths.insert(targetIdx, movedPath);
+
+        _activePlaylist = Playlist(
+          name: _activePlaylist!.name,
+          songPaths: paths,
+          songs: _activePlaylist!.songs,
+          lastPlayedIndex: _activePlaylist!.lastPlayedIndex,
+          lastPlayedPosition: _activePlaylist!.lastPlayedPosition,
+        );
+      } else {
+        // Not in playlist, insert it using direct AudioPlayer method
+        await _player.insertAudioSource(targetIdx, AudioSource.file(path));
+
+        final paths = List<String>.from(_activePlaylist!.songPaths);
+        paths.insert(targetIdx, path);
+
+        _activePlaylist = Playlist(
+          name: _activePlaylist!.name,
+          songPaths: paths,
+          songs: _activePlaylist!.songs,
+          lastPlayedIndex: _activePlaylist!.lastPlayedIndex,
+          lastPlayedPosition: _activePlaylist!.lastPlayedPosition,
+        );
+      }
+      state = state.copyWith(currentPlaylist: _activePlaylist);
     }
   }
 
