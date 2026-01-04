@@ -41,7 +41,7 @@ class _FileBrowserWidgetState extends ConsumerState<FileBrowserWidget> {
       // Small delay to ensure the list is built
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!_scrollController.hasClients) return;
-        final position = index * 72.0; // Estimate tile height
+        final position = index * 50.0; // Estimate tile height
         final maxScroll = _scrollController.position.maxScrollExtent;
         _scrollController.animateTo(
           position.clamp(0.0, maxScroll),
@@ -159,6 +159,7 @@ class _FileBrowserWidgetState extends ConsumerState<FileBrowserWidget> {
         final isPlaying = playerState.currentSongPath == item.path;
 
         return ListTile(
+          isThreeLine: false,
           selected: isPlaying,
           leading: Icon(
             item.isDirectory
@@ -170,14 +171,36 @@ class _FileBrowserWidgetState extends ConsumerState<FileBrowserWidget> {
                       ? Theme.of(context).colorScheme.primary
                       : Colors.blue),
           ),
-          title: Text(
-            item.name,
-            style: TextStyle(
-              fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-          subtitle: !item.isDirectory
-              ? FutureBuilder<Duration?>(
+          title: item.isDirectory
+              ? Text(
+                  item.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal,
+                  ),
+                )
+              : SizedBox(
+                  height: 40, // Reduced height for single line scrolling
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Center(
+                      child: Text(
+                        item.name,
+                        style: TextStyle(
+                          fontWeight: isPlaying
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!item.isDirectory)
+                FutureBuilder<Duration?>(
                   future: playlistsNotifier.getCachedDuration(item.path),
                   builder: (context, snapshot) {
                     if (snapshot.hasData && snapshot.data != null) {
@@ -190,19 +213,21 @@ class _FileBrowserWidgetState extends ConsumerState<FileBrowserWidget> {
                     }
                     return const SizedBox.shrink();
                   },
-                )
-              : null,
-          trailing: IconButton(
-            icon: Icon(
-              item.isDirectory
-                  ? (pinned.contains(item.path)
-                        ? Icons.push_pin
-                        : Icons.push_pin_outlined)
-                  : Icons.playlist_add,
-            ),
-            onPressed: item.isDirectory
-                ? () => pinnedNotifier.toggle(item.path)
-                : () => _addFileToPlaylist(context, ref, item),
+                ),
+              if (!item.isDirectory) const SizedBox(width: 2),
+              IconButton(
+                icon: Icon(
+                  item.isDirectory
+                      ? (pinned.contains(item.path)
+                            ? Icons.push_pin
+                            : Icons.push_pin_outlined)
+                      : Icons.playlist_add,
+                ),
+                onPressed: item.isDirectory
+                    ? () => pinnedNotifier.toggle(item.path)
+                    : () => _addFileToPlaylist(context, ref, item),
+              ),
+            ],
           ),
           onLongPress: item.isDirectory
               ? () async {

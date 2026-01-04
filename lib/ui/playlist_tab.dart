@@ -33,9 +33,9 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
       if (index != -1) {
         // Scroll to index * itemHeight. Let's estimate itemHeight ~ 72.0 (ListTile default)
         if (_scrollController.hasClients) {
-          print("AutoScroll: Animating to ${index * 80.0}");
+          print("AutoScroll: Animating to ${index * 65.0}");
           _scrollController.animateTo(
-            index * 80.0,
+            index * 65.0,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
           );
@@ -225,10 +225,16 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                             index == selectedPlaylist.lastPlayedIndex);
 
                     return ListTile(
-                      title: Text(
-                        songMeta?.title ?? p.basename(songPath),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      title: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Text(
+                          songMeta?.title ?? p.basename(songPath),
+                          style: TextStyle(
+                            fontWeight: isLastPlayed
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
                       ),
                       subtitle: Text(
                         songMeta?.artist ?? "Unknown Artist",
