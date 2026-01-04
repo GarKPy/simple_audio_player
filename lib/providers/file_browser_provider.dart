@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_ce_flutter/adapters.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -40,6 +41,7 @@ class FileBrowserState {
   final String? error;
   final bool isRootScreen;
   final List<FileBrowserItem> storages;
+  final Map<String, double> scrollPositions;
 
   FileBrowserState({
     this.rootPath,
@@ -49,6 +51,7 @@ class FileBrowserState {
     this.error,
     this.isRootScreen = true,
     this.storages = const [],
+    this.scrollPositions = const {},
   });
 
   FileBrowserState copyWith({
@@ -59,6 +62,7 @@ class FileBrowserState {
     String? error,
     bool? isRootScreen,
     List<FileBrowserItem>? storages,
+    Map<String, double>? scrollPositions,
   }) {
     return FileBrowserState(
       rootPath: rootPath ?? this.rootPath,
@@ -68,6 +72,7 @@ class FileBrowserState {
       error: error,
       isRootScreen: isRootScreen ?? this.isRootScreen,
       storages: storages ?? this.storages,
+      scrollPositions: scrollPositions ?? this.scrollPositions,
     );
   }
 }
@@ -82,11 +87,22 @@ class FileBrowserNotifier extends StateNotifier<FileBrowserState> {
   Future<void> init() async {
     state = state.copyWith(isLoading: true);
     final storages = await _getStorageVolumes();
+
+    // Load scroll positions from Hive
+    final box = Hive.box<double>('scroll_positions');
+    final scrollPositions = <String, double>{};
+    for (var key in box.keys) {
+      if (key is String) {
+        scrollPositions[key] = box.get(key) ?? 0.0;
+      }
+    }
+
     state = state.copyWith(
       storages: storages,
       isLoading: false,
       isRootScreen: true,
       items: storages,
+      scrollPositions: scrollPositions,
     );
   }
 
@@ -222,6 +238,17 @@ class FileBrowserNotifier extends StateNotifier<FileBrowserState> {
   Future<void> togglePin(FileBrowserItem item) async {
     print("togglePin");
     print(item.isPinned);
+  }
+
+  void setScrollPosition(String path, double offset) {
+    if (path.isEmpty) return;
+    final newPositions = Map<String, double>.from(state.scrollPositions);
+    newPositions[path] = offset;
+    state = state.copyWith(scrollPositions: newPositions);
+
+    // Persist to Hive
+    final box = Hive.box<double>('scroll_positions');
+    box.put(path, offset);
   }
 }
 

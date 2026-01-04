@@ -16,6 +16,23 @@ class FileBrowserWidget extends ConsumerStatefulWidget {
 class _FileBrowserWidgetState extends ConsumerState<FileBrowserWidget> {
   final ScrollController _scrollController = ScrollController();
 
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final state = ref.read(fileBrowserProvider);
+    final path = state.isRootScreen ? "root" : state.currentPath;
+    if (path.isNotEmpty) {
+      ref
+          .read(fileBrowserProvider.notifier)
+          .setScrollPosition(path, _scrollController.offset);
+    }
+  }
+
   void _scrollToCurrentTrack(String? currentPath, List<FileBrowserItem> items) {
     if (currentPath == null || !_scrollController.hasClients) return;
 
@@ -55,6 +72,26 @@ class _FileBrowserWidgetState extends ConsumerState<FileBrowserWidget> {
     ref.listen(playerProvider.select((s) => s.currentSongPath), (prev, next) {
       if (next != null) {
         _scrollToCurrentTrack(next, state.items);
+      }
+    });
+
+    // Listen for folder changes to restore scroll position
+    ref.listen(fileBrowserProvider.select((s) => s.isLoading), (prev, next) {
+      if (prev == true && next == false) {
+        // isLoading finished
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!_scrollController.hasClients) return;
+          final currentState = ref.read(fileBrowserProvider);
+          final path = currentState.isRootScreen
+              ? "root"
+              : currentState.currentPath;
+          final savedOffset = currentState.scrollPositions[path];
+          if (savedOffset != null) {
+            _scrollController.jumpTo(savedOffset);
+          } else {
+            _scrollController.jumpTo(0.0);
+          }
+        });
       }
     });
 
