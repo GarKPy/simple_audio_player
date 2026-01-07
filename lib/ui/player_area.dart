@@ -12,6 +12,8 @@ class PlayerArea extends ConsumerStatefulWidget {
 
 class _PlayerAreaState extends ConsumerState<PlayerArea> {
   bool _showRemaining = true;
+  double? _dragValue; // Moved from build to state class
+  bool _wasPlayingBeforeDrag = false;
 
   String _formatDuration(Duration d) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -25,17 +27,17 @@ class _PlayerAreaState extends ConsumerState<PlayerArea> {
   Widget build(BuildContext context) {
     final playerState = ref.watch(playerProvider);
 
-    final elapsed = _formatDuration(playerState.position);
+    final effectivePosition = _dragValue != null
+        ? Duration(milliseconds: _dragValue!.toInt())
+        : playerState.position;
+
+    final elapsed = _formatDuration(effectivePosition);
     final total = _formatDuration(playerState.duration);
-    final remaining = _formatDuration(
-      playerState.duration - playerState.position,
-    );
+    final remaining = _formatDuration(playerState.duration - effectivePosition);
 
     final timeDisplay = _showRemaining
         ? "-$remaining / $total"
         : "$elapsed / $total";
-
-    double? _dragValue; // null when not dragging
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -91,29 +93,37 @@ class _PlayerAreaState extends ConsumerState<PlayerArea> {
 
           // Progress Bar
           Slider(
+            activeColor: const Color.fromARGB(255, 32, 255, 244),
+            inactiveColor: Theme.of(context).colorScheme.onSurfaceVariant,
             value:
                 (_dragValue ?? playerState.position.inMilliseconds.toDouble())
                     .clamp(0.0, playerState.duration.inMilliseconds.toDouble()),
-
             min: 0.0,
             max: playerState.duration.inMilliseconds.toDouble(),
-
             onChangeStart: (value) {
-              _dragValue = value; // lock slider to finger
-              setState(() {});
+              _wasPlayingBeforeDrag = playerState.isPlaying;
+              setState(() {
+                _dragValue = value;
+              });
+              ref.read(playerProvider.notifier).pause();
             },
-
             onChanged: (value) {
-              _dragValue = value; // update thumb smoothly
-              setState(() {});
+              setState(() {
+                _dragValue = value;
+              });
             },
-
-            onChangeEnd: (value) {
-              _dragValue = null; // release lock
-
-              ref
+            onChangeEnd: (value) async {
+              await ref
                   .read(playerProvider.notifier)
                   .seek(Duration(milliseconds: value.toInt()));
+              // Resume only if it was playing before
+              if (_wasPlayingBeforeDrag) {
+                await ref.read(playerProvider.notifier).play();
+              }
+              //await ref.read(playerProvider.notifier).play();
+              setState(() {
+                _dragValue = null;
+              });
             },
           ),
 

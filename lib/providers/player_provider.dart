@@ -267,11 +267,19 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
 
   Future<void> togglePlay() async {
     if (_player.playing) {
-      await _player.pause();
-      await _flushStateToHive();
+      await pause();
     } else {
-      _player.play();
+      await play();
     }
+  }
+
+  Future<void> pause() async {
+    await _player.pause();
+    await _flushStateToHive();
+  }
+
+  Future<void> play() async {
+    await _player.play();
   }
 
   Future<void> next() async {
