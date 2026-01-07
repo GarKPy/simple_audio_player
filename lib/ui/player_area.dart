@@ -35,6 +35,8 @@ class _PlayerAreaState extends ConsumerState<PlayerArea> {
         ? "-$remaining / $total"
         : "$elapsed / $total";
 
+    double? _dragValue; // null when not dragging
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -89,13 +91,26 @@ class _PlayerAreaState extends ConsumerState<PlayerArea> {
 
           // Progress Bar
           Slider(
-            value: playerState.position.inMilliseconds.toDouble().clamp(
-              0.0,
-              playerState.duration.inMilliseconds.toDouble(),
-            ),
+            value:
+                (_dragValue ?? playerState.position.inMilliseconds.toDouble())
+                    .clamp(0.0, playerState.duration.inMilliseconds.toDouble()),
+
             min: 0.0,
             max: playerState.duration.inMilliseconds.toDouble(),
+
+            onChangeStart: (value) {
+              _dragValue = value; // lock slider to finger
+              setState(() {});
+            },
+
             onChanged: (value) {
+              _dragValue = value; // update thumb smoothly
+              setState(() {});
+            },
+
+            onChangeEnd: (value) {
+              _dragValue = null; // release lock
+
               ref
                   .read(playerProvider.notifier)
                   .seek(Duration(milliseconds: value.toInt()));
