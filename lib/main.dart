@@ -28,10 +28,12 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       title: 'Simple Player',
       theme: ThemeData(
+        scaffoldBackgroundColor: const Color.fromARGB(255, 18, 127, 131),
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
+          seedColor: const Color.fromARGB(255, 10, 255, 214),
           brightness: Brightness.dark,
+          surfaceContainerHighest: const Color.fromARGB(255, 18, 127, 131),
         ),
       ),
       home: const MainScreen(),

@@ -122,84 +122,151 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
       children: [
         // Horizontal Playlists + Add Button
         Container(
-          height: 60,
-          color: Theme.of(context).colorScheme.surface,
-          child: Row(
+          height: 50,
+          //color: Theme.of(context).colorScheme.primary,
+          // decoration: BoxDecoration(
+          //   color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          //   border: Border(
+          //     top: BorderSide(
+          //       color: Theme.of(context).colorScheme.primary,
+          //       width: 2,
+          //     ),
+          //     bottom: BorderSide(
+          //       color: Theme.of(context).colorScheme.primary,
+          //       width: 2,
+          //     ),
+          //   ),
+          // ),
+          child: Stack(
             children: [
-              Expanded(
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  itemCount: playlists.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final playlist = playlists[index];
-                    final isSelected = index == selectedPlaylistIndex;
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        child: Material(
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.primaryContainer
-                              : Theme.of(
-                                  context,
-                                ).colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(20),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(20),
-                            onTap: () {
-                              ref
-                                      .read(
-                                        selectedPlaylistIndexProvider.notifier,
-                                      )
-                                      .state =
-                                  index;
-                            },
-                            onLongPress: () {
-                              if (playlist.name == 'Favorites') return;
-                              _confirmDeletePlaylist(context, playlist);
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12.0,
-                                vertical: 8.0,
-                              ),
-                              child: Text(
-                                playlist.name,
-                                style: TextStyle(
-                                  color: isSelected
-                                      ? Theme.of(
-                                          context,
-                                        ).colorScheme.onPrimaryContainer
-                                      : Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                ),
+              ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                itemCount: playlists.length,
+                itemBuilder: (context, index) {
+                  final playlist = playlists[index];
+                  final isSelected = index == selectedPlaylistIndex;
+                  return Center(
+                    child: Material(
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primaryContainer
+                          : Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                      //borderRadius: BorderRadius.circular(20),
+                      elevation: 5,
+                      //shadowColor: Theme.of(context).colorScheme.secondary,
+                      surfaceTintColor: Theme.of(context).colorScheme.primary,
+
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          //color: Colors.blueGrey.withValues(alpha: 0.3),
+                          //borderRadius: BorderRadius.circular(0),
+                          border: Border.all(
+                            // color: const Color.fromARGB(
+                            //   255,
+                            //   126,
+                            //   255,
+                            //   75,
+                            // ).withValues(alpha: 0.7),
+                            color: const Color.fromARGB(
+                              255,
+                              32,
+                              255,
+                              244,
+                            ).withValues(alpha: 0.5),
+
+                            width: 2,
+                          ),
+                        ),
+                        child: InkWell(
+                          //borderRadius: BorderRadius.circular(20),
+                          onTap: () {
+                            ref
+                                    .read(
+                                      selectedPlaylistIndexProvider.notifier,
+                                    )
+                                    .state =
+                                index;
+                          },
+                          onLongPress: () {
+                            if (playlist.name == 'Favorites') return;
+                            _confirmDeletePlaylist(context, playlist);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0,
+                              vertical: 2.0,
+                            ),
+                            child: Text(
+                              playlist.name,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimaryContainer
+                                    : Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
                             ),
                           ),
                         ),
                       ),
-                    );
-                  },
+                    ),
+                  );
+                },
+              ),
+              //const VerticalDivider(width: 1),
+              Positioned(
+                right: 0,
+                height: 50,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        Theme.of(context).colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0), // fully visible
+                        Theme.of(context).colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 1), // fully transparent
+                      ],
+                    ),
+                  ),
+                  //color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: InkWell(
+                    //splashColor: Colors.red,
+                    onTap: () => _showCreatePlaylistDialog(context),
+                    child: Icon(
+                      Icons.add,
+                      size: 32,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ),
               ),
-              const VerticalDivider(width: 1),
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: () => _showCreatePlaylistDialog(context),
-                tooltip: "Create Playlist",
-              ),
-              const SizedBox(width: 8),
+              // SizedBox(
+              //   height: 30,
+              //   child: IconButton(
+              //     icon: const Icon(Icons.add),
+              //     onPressed: () => _showCreatePlaylistDialog(context),
+              //     tooltip: "Create Playlist",
+              //   ),
+              // ),
+              //const SizedBox(width: 2),
             ],
           ),
         ),
-        const Divider(height: 1),
-
+        Divider(
+          color: Theme.of(context).colorScheme.primary,
+          thickness: 2,
+          height: 2,
+        ),
         // Vertical List of Items
         Expanded(
           child: selectedPlaylist.songPaths.isEmpty

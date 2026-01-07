@@ -98,6 +98,11 @@ class _FileBrowserWidgetState extends ConsumerState<FileBrowserWidget> {
     return Column(
       children: [
         _PathBar(state: state, notifier: notifier),
+        Divider(
+          color: Theme.of(context).colorScheme.primary,
+          thickness: 2,
+          height: 2,
+        ),
         Expanded(
           child: _buildBody(
             context,
@@ -236,15 +241,6 @@ class _FileBrowserWidgetState extends ConsumerState<FileBrowserWidget> {
                     playlistsProvider.notifier,
                   );
 
-                  // Create playlist (safe to call if exists, handled by provider)
-                  await playlistsNotifier.createPlaylist(playlistName);
-
-                  final playlists = ref.read(playlistsProvider);
-                  final playlist = playlists.firstWhere(
-                    (p) => p.name == playlistName,
-                    orElse: () => throw Exception("Playlist creation failed"),
-                  );
-
                   // Scan for files
                   try {
                     final dir = Directory(item.path);
@@ -270,6 +266,16 @@ class _FileBrowserWidgetState extends ConsumerState<FileBrowserWidget> {
                         .toList();
 
                     if (audioPaths.isNotEmpty) {
+                      // Create playlist (safe to call if exists, handled by provider)
+                      await playlistsNotifier.createPlaylist(playlistName);
+
+                      final playlists = ref.read(playlistsProvider);
+                      final playlist = playlists.firstWhere(
+                        (p) => p.name == playlistName,
+                        orElse: () =>
+                            throw Exception("Playlist creation failed"),
+                      );
+
                       await playlistsNotifier.addSongsToPlaylist(
                         playlist,
                         audioPaths,
@@ -287,7 +293,9 @@ class _FileBrowserWidgetState extends ConsumerState<FileBrowserWidget> {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text("No audio files found in folder"),
+                            content: Text(
+                              "No audio files found in folder. \nPlaylist not created.",
+                            ),
                           ),
                         );
                       }
@@ -447,20 +455,43 @@ class _PathBar extends StatelessWidget {
         Text(
           pathText,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     );
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      height: 50,
+      //decoration: BoxDecoration(
+      // border: Border(
+      //   bottom: BorderSide(
+      //     width: 2,
+      //     color: Theme.of(context).colorScheme.primary,
+      //   ),
+      // ),
+      //),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_upward),
-            onPressed: state.isRootScreen ? null : notifier.goBack,
+          InkWell(
+            //splashColor: Colors.red,
+            onTap: state.isRootScreen ? null : notifier.goBack,
+            child: Icon(
+              Icons.arrow_upward,
+              size: 40,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
+          // IconButton(
+          //   icon: Icon(
+          //     Icons.arrow_upward,
+          //     color: Theme.of(context).colorScheme.onSurface,
+          //   ),
+          //   onPressed: state.isRootScreen ? null : notifier.goBack,
+          // ),
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,

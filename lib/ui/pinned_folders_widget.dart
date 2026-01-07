@@ -13,32 +13,66 @@ class PinnedFoldersWidget extends ConsumerWidget {
 
     if (pinnedFolders.isEmpty) return const SizedBox.shrink();
     print("-----PinnedFoldersRow");
-    return SizedBox(
-      height: 60,
-      child: ListView.builder(
+    return Container(
+      height: 50,
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
         itemCount: pinnedFolders.length,
         itemBuilder: (context, index) {
           final folder = pinnedFolders[index];
-          return GestureDetector(
-            onLongPress: () =>
-                ref.read(pinnedFoldersProvider.notifier).toggle(folder),
-            onTap: () {
-              print("Pinned tapped: $folder");
-              //final notifier = ref.read(fileBrowserProvider.notifier);
-              //print("notifier hash: ${notifier.hashCode}");
-              //notifier.navigateTo(folder);
-              ref.read(fileBrowserProvider.notifier).navigateTo(folder);
-            },
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.blueGrey.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(20),
+          return Center(
+            child: Material(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              elevation: 5,
+              surfaceTintColor: Theme.of(context).colorScheme.primary,
+
+              child: Ink(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: const Color.fromARGB(
+                      255,
+                      32,
+                      255,
+                      244,
+                    ).withValues(alpha: 0.5),
+                    width: 2,
+                  ),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color.fromARGB(
+                        255,
+                        32,
+                        255,
+                        244,
+                      ).withValues(alpha: 0.2),
+                      blurRadius: 2,
+                      offset: const Offset(3, 3),
+                    ),
+                  ],
+                ),
+                child: InkWell(
+                  onLongPress: () =>
+                      ref.read(pinnedFoldersProvider.notifier).toggle(folder),
+                  onTap: () {
+                    ref.read(fileBrowserProvider.notifier).navigateTo(folder);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 2.0,
+                    ),
+                    child: Text(
+                      p.basename(folder),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-              alignment: Alignment.center,
-              child: Text(p.basename(folder)),
             ),
           );
         },

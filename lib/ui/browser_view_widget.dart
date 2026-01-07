@@ -11,6 +11,11 @@ class BrowserView extends StatelessWidget {
     return Column(
       children: [
         const PinnedFoldersWidget(),
+        Divider(
+          color: Theme.of(context).colorScheme.primary,
+          thickness: 2,
+          height: 2,
+        ),
         const Expanded(child: FileBrowserWidget()),
       ],
     );

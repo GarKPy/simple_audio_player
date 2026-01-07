@@ -11,7 +11,7 @@ class PlayerArea extends ConsumerStatefulWidget {
 }
 
 class _PlayerAreaState extends ConsumerState<PlayerArea> {
-  bool _showRemaining = false;
+  bool _showRemaining = true;
 
   String _formatDuration(Duration d) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -38,8 +38,7 @@ class _PlayerAreaState extends ConsumerState<PlayerArea> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
-        border: const Border(top: BorderSide(color: Colors.grey, width: 0.5)),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
