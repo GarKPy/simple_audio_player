@@ -129,7 +129,20 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                 //ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                //separatorBuilder: (context, index) => const SizedBox(width: 8),
+                // Removes background's shade
+                proxyDecorator: (child, index, animation) {
+                  return AnimatedBuilder(
+                    animation: animation,
+                    builder: (context, child) {
+                      return Material(
+                        elevation: 10,
+                        color: Colors.transparent,
+                        child: child,
+                      );
+                    },
+                    child: child,
+                  );
+                },
                 itemCount: playlists.length,
                 onReorder: (oldIndex, newIndex) {
                   if (newIndex > oldIndex) newIndex--;
