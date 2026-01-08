@@ -139,94 +139,116 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
           // ),
           child: Stack(
             children: [
-              ListView.separated(
+              ReorderableListView.builder(
+                //ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                //separatorBuilder: (context, index) => const SizedBox(width: 8),
                 itemCount: playlists.length,
+                onReorder: (oldIndex, newIndex) {
+                  if (newIndex > oldIndex) newIndex--;
+
+                  final item = playlists.removeAt(oldIndex);
+                  playlists.insert(newIndex, item);
+
+                  ref.read(playlistsProvider.notifier).state = playlists;
+                },
                 itemBuilder: (context, index) {
                   final playlist = playlists[index];
                   final isSelected = index == selectedPlaylistIndex;
-                  return Center(
-                    child: Material(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.primaryContainer
-                          : Theme.of(
+                  return ReorderableDelayedDragStartListener(
+                    key: ValueKey(playlists[index]),
+                    index: index,
+                    child: Center(
+                      //key: ValueKey(playlists[index]),
+                      child: Row(
+                        children: [
+                          Material(
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.primaryContainer
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
+                            //borderRadius: BorderRadius.circular(20),
+                            elevation: 5,
+                            //shadowColor: Theme.of(context).colorScheme.secondary,
+                            surfaceTintColor: Theme.of(
                               context,
-                            ).colorScheme.surfaceContainerHighest,
-                      //borderRadius: BorderRadius.circular(20),
-                      elevation: 5,
-                      //shadowColor: Theme.of(context).colorScheme.secondary,
-                      surfaceTintColor: Theme.of(context).colorScheme.primary,
+                            ).colorScheme.primary,
 
-                      child: Ink(
-                        decoration: BoxDecoration(
-                          //color: Colors.blueGrey.withValues(alpha: 0.3),
-                          //borderRadius: BorderRadius.circular(0),
-                          border: isSelected
-                              ? Border.all(
-                                  // color: const Color.fromARGB(
-                                  //   255,
-                                  //   126,
-                                  //   255,
-                                  //   75,
-                                  // ).withValues(alpha: 0.7),
-                                  color: const Color.fromARGB(
-                                    255,
-                                    32,
-                                    255,
-                                    244,
-                                  ).withValues(alpha: 1),
+                            child: Ink(
+                              decoration: BoxDecoration(
+                                //color: Colors.blueGrey.withValues(alpha: 0.3),
+                                //borderRadius: BorderRadius.circular(0),
+                                border: isSelected
+                                    ? Border.all(
+                                        // color: const Color.fromARGB(
+                                        //   255,
+                                        //   126,
+                                        //   255,
+                                        //   75,
+                                        // ).withValues(alpha: 0.7),
+                                        color: const Color.fromARGB(
+                                          255,
+                                          32,
+                                          255,
+                                          244,
+                                        ).withValues(alpha: 1),
 
-                                  width: 2,
-                                )
-                              : Border.all(
-                                  color: const Color.fromARGB(
-                                    255,
-                                    32,
-                                    255,
-                                    244,
-                                  ).withValues(alpha: 0.5),
+                                        width: 2,
+                                      )
+                                    : Border.all(
+                                        color: const Color.fromARGB(
+                                          255,
+                                          32,
+                                          255,
+                                          244,
+                                        ).withValues(alpha: 0.5),
 
-                                  width: 2,
+                                        width: 2,
+                                      ),
+                              ),
+                              child: InkWell(
+                                //borderRadius: BorderRadius.circular(20),
+                                onTap: () {
+                                  ref
+                                          .read(
+                                            selectedPlaylistIndexProvider
+                                                .notifier,
+                                          )
+                                          .state =
+                                      index;
+                                },
+                                // onLongPress: () {
+                                //   if (playlist.name == 'Favorites') return;
+                                //   _confirmDeletePlaylist(context, playlist);
+                                // },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8.0,
+                                    vertical: 2.0,
+                                  ),
+                                  child: Text(
+                                    playlist.name,
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.onPrimaryContainer
+                                          : Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
                                 ),
-                        ),
-                        child: InkWell(
-                          //borderRadius: BorderRadius.circular(20),
-                          onTap: () {
-                            ref
-                                    .read(
-                                      selectedPlaylistIndexProvider.notifier,
-                                    )
-                                    .state =
-                                index;
-                          },
-                          onLongPress: () {
-                            if (playlist.name == 'Favorites') return;
-                            _confirmDeletePlaylist(context, playlist);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8.0,
-                              vertical: 2.0,
-                            ),
-                            child: Text(
-                              playlist.name,
-                              style: TextStyle(
-                                color: isSelected
-                                    ? Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimaryContainer
-                                    : Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
                               ),
                             ),
                           ),
-                        ),
+                          VerticalDivider(width: 8, color: Colors.transparent),
+                        ],
                       ),
                     ),
                   );
