@@ -36,7 +36,7 @@ class PinnedFoldersWidget extends ConsumerWidget {
                       32,
                       255,
                       244,
-                    ).withValues(alpha: 0.5),
+                    ).withValues(alpha: 1),
                     width: 2,
                   ),
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,

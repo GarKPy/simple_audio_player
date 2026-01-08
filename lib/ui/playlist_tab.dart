@@ -163,22 +163,33 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                         decoration: BoxDecoration(
                           //color: Colors.blueGrey.withValues(alpha: 0.3),
                           //borderRadius: BorderRadius.circular(0),
-                          border: Border.all(
-                            // color: const Color.fromARGB(
-                            //   255,
-                            //   126,
-                            //   255,
-                            //   75,
-                            // ).withValues(alpha: 0.7),
-                            color: const Color.fromARGB(
-                              255,
-                              32,
-                              255,
-                              244,
-                            ).withValues(alpha: 0.5),
+                          border: isSelected
+                              ? Border.all(
+                                  // color: const Color.fromARGB(
+                                  //   255,
+                                  //   126,
+                                  //   255,
+                                  //   75,
+                                  // ).withValues(alpha: 0.7),
+                                  color: const Color.fromARGB(
+                                    255,
+                                    32,
+                                    255,
+                                    244,
+                                  ).withValues(alpha: 1),
 
-                            width: 2,
-                          ),
+                                  width: 2,
+                                )
+                              : Border.all(
+                                  color: const Color.fromARGB(
+                                    255,
+                                    32,
+                                    255,
+                                    244,
+                                  ).withValues(alpha: 0.5),
+
+                                  width: 2,
+                                ),
                         ),
                         child: InkWell(
                           //borderRadius: BorderRadius.circular(20),
