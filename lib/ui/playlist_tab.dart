@@ -123,20 +123,6 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
         // Horizontal Playlists + Add Button
         Container(
           height: 50,
-          //color: Theme.of(context).colorScheme.primary,
-          // decoration: BoxDecoration(
-          //   color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          //   border: Border(
-          //     top: BorderSide(
-          //       color: Theme.of(context).colorScheme.primary,
-          //       width: 2,
-          //     ),
-          //     bottom: BorderSide(
-          //       color: Theme.of(context).colorScheme.primary,
-          //       width: 2,
-          //     ),
-          //   ),
-          // ),
           child: Stack(
             children: [
               ReorderableListView.builder(
@@ -160,101 +146,125 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                     key: ValueKey(playlists[index]),
                     index: index,
                     child: Center(
-                      //key: ValueKey(playlists[index]),
                       child: Row(
                         children: [
-                          Material(
-                            color: isSelected
-                                ? Theme.of(context).colorScheme.primaryContainer
-                                : Theme.of(
-                                    context,
-                                  ).colorScheme.surfaceContainerHighest,
-                            //borderRadius: BorderRadius.circular(20),
-                            elevation: 5,
-                            //shadowColor: Theme.of(context).colorScheme.secondary,
-                            surfaceTintColor: Theme.of(
-                              context,
-                            ).colorScheme.primary,
-
-                            child: Ink(
-                              decoration: BoxDecoration(
-                                //color: Colors.blueGrey.withValues(alpha: 0.3),
-                                //borderRadius: BorderRadius.circular(0),
-                                border: isSelected
-                                    ? Border.all(
-                                        // color: const Color.fromARGB(
-                                        //   255,
-                                        //   126,
-                                        //   255,
-                                        //   75,
-                                        // ).withValues(alpha: 0.7),
-                                        color: const Color.fromARGB(
-                                          255,
-                                          32,
-                                          255,
-                                          244,
-                                        ).withValues(alpha: 1),
-
-                                        width: 2,
-                                      )
-                                    : Border.all(
-                                        color: const Color.fromARGB(
-                                          255,
-                                          32,
-                                          255,
-                                          244,
-                                        ).withValues(alpha: 0.5),
-
-                                        width: 2,
-                                      ),
+                          Dismissible(
+                            key: ValueKey("dismiss_${playlist.name}"),
+                            direction: playlist.name == 'Favorites'
+                                ? DismissDirection.none
+                                : DismissDirection.up,
+                            confirmDismiss: (direction) async {
+                              return await _confirmDeletePlaylist(
+                                context,
+                                playlist,
+                              );
+                            },
+                            onDismissed: (direction) {
+                              ref
+                                  .read(playlistsProvider.notifier)
+                                  .deletePlaylist(playlist);
+                              final currentIndex = ref.read(
+                                selectedPlaylistIndexProvider,
+                              );
+                              if (currentIndex >= 1) {
+                                ref
+                                        .read(
+                                          selectedPlaylistIndexProvider
+                                              .notifier,
+                                        )
+                                        .state =
+                                    0;
+                              }
+                            },
+                            background: Container(
+                              color: Colors.red,
+                              alignment: Alignment.bottomCenter,
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: const Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                                size: 20,
                               ),
-                              child: InkWell(
-                                //borderRadius: BorderRadius.circular(20),
-                                onTap: () {
-                                  ref
-                                          .read(
-                                            selectedPlaylistIndexProvider
-                                                .notifier,
-                                          )
-                                          .state =
-                                      index;
-                                },
-                                // onLongPress: () {
-                                //   if (playlist.name == 'Favorites') return;
-                                //   _confirmDeletePlaylist(context, playlist);
-                                // },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8.0,
-                                    vertical: 2.0,
-                                  ),
-                                  child: Text(
-                                    playlist.name,
-                                    style: TextStyle(
-                                      color: isSelected
-                                          ? Theme.of(
-                                              context,
-                                            ).colorScheme.onPrimaryContainer
-                                          : Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                      fontWeight: isSelected
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
+                            ),
+                            child: Material(
+                              color: isSelected
+                                  ? Theme.of(
+                                      context,
+                                    ).colorScheme.primaryContainer
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
+                              elevation: 5,
+                              surfaceTintColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  border: isSelected
+                                      ? Border.all(
+                                          color: const Color.fromARGB(
+                                            255,
+                                            32,
+                                            255,
+                                            244,
+                                          ).withValues(alpha: 1),
+                                          width: 2,
+                                        )
+                                      : Border.all(
+                                          color: const Color.fromARGB(
+                                            255,
+                                            32,
+                                            255,
+                                            244,
+                                          ).withValues(alpha: 0.5),
+                                          width: 2,
+                                        ),
+                                ),
+                                child: InkWell(
+                                  onTap: () {
+                                    ref
+                                            .read(
+                                              selectedPlaylistIndexProvider
+                                                  .notifier,
+                                            )
+                                            .state =
+                                        index;
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8.0,
+                                      vertical: 2.0,
+                                    ),
+                                    child: Text(
+                                      playlist.name,
+                                      style: TextStyle(
+                                        color: isSelected
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.onPrimaryContainer
+                                            : Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                        fontWeight: isSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                          VerticalDivider(width: 8, color: Colors.transparent),
+                          const VerticalDivider(
+                            width: 8,
+                            color: Colors.transparent,
+                          ),
                         ],
                       ),
                     ),
                   );
                 },
               ),
-              //const VerticalDivider(width: 1),
               Positioned(
                 right: 0,
                 height: 50,
@@ -440,8 +450,11 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
     );
   }
 
-  void _confirmDeletePlaylist(BuildContext context, dynamic playlist) {
-    showDialog(
+  Future<bool?> _confirmDeletePlaylist(
+    BuildContext context,
+    Playlist playlist,
+  ) {
+    return showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -449,19 +462,11 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
           content: Text("Are you sure you want to delete '${playlist.name}'?"),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(context).pop(false),
               child: const Text("Cancel"),
             ),
             FilledButton(
-              onPressed: () {
-                ref.read(playlistsProvider.notifier).deletePlaylist(playlist);
-                final currentIndex = ref.read(selectedPlaylistIndexProvider);
-                if (currentIndex >= 1) {
-                  ref.read(selectedPlaylistIndexProvider.notifier).state = 0;
-                }
-                // setState(() {}); // Not needed as provider update triggers rebuild
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(true),
               child: const Text("Delete"),
             ),
           ],
