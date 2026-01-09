@@ -15,6 +15,9 @@ void main() async {
   await Hive.openBox<List<String>>('pinned_folders');
   await Hive.openBox<Playlist>('playlists');
   await Hive.openBox<int>('audio_durations');
+  await Hive.openBox(
+    'settings',
+  ); // Box to store app settings like playlist order
   await Hive.openBox<double>('scroll_positions');
 
   runApp(const ProviderScope(child: MainApp()));

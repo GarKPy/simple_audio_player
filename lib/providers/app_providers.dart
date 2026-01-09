@@ -60,7 +60,24 @@ class PlaylistsNotifier extends StateNotifier<List<Playlist>> {
         await _box.add(Playlist(name: 'Favorites', songPaths: []));
       }
     }
-    state = _box.values.toList();
+
+    final settingsBox = Hive.box('settings');
+    final orderedNames = List<String>.from(
+      settingsBox.get('playlist_order', defaultValue: [])!,
+    );
+
+    final playlists = _box.values.toList();
+    if (orderedNames.isNotEmpty) {
+      playlists.sort((a, b) {
+        final indexA = orderedNames.indexOf(a.name);
+        final indexB = orderedNames.indexOf(b.name);
+        if (indexA == -1 && indexB == -1) return 0;
+        if (indexA == -1) return 1;
+        if (indexB == -1) return -1;
+        return indexA.compareTo(indexB);
+      });
+    }
+    state = playlists;
 
     // Background refresh for songs missing metadata
     _refreshAllMetadata();
@@ -135,6 +152,22 @@ class PlaylistsNotifier extends StateNotifier<List<Playlist>> {
     final playlist = Playlist(name: name, songPaths: []);
     await _box.add(playlist);
     state = _box.values.toList();
+    _updateStoredOrder();
+  }
+
+  Future<void> reorderPlaylists(int oldIndex, int newIndex) async {
+    final list = List<Playlist>.from(state);
+    if (newIndex > oldIndex) newIndex--;
+    final item = list.removeAt(oldIndex);
+    list.insert(newIndex, item);
+    state = list;
+    _updateStoredOrder();
+  }
+
+  void _updateStoredOrder() {
+    final settingsBox = Hive.box('settings');
+    final orderedNames = state.map((p) => p.name).toList();
+    settingsBox.put('playlist_order', orderedNames);
   }
 
   Future<void> deletePlaylist(Playlist playlist) async {
@@ -144,6 +177,7 @@ class PlaylistsNotifier extends StateNotifier<List<Playlist>> {
     // or _box.delete(key) if we knew it.
     // simpler to refresh state
     state = _box.values.toList();
+    _updateStoredOrder();
   }
 
   // Method to add songs to a playlist

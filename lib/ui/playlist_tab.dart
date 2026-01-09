@@ -145,12 +145,9 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                 },
                 itemCount: playlists.length,
                 onReorder: (oldIndex, newIndex) {
-                  if (newIndex > oldIndex) newIndex--;
-
-                  final item = playlists.removeAt(oldIndex);
-                  playlists.insert(newIndex, item);
-
-                  ref.read(playlistsProvider.notifier).state = playlists;
+                  ref
+                      .read(playlistsProvider.notifier)
+                      .reorderPlaylists(oldIndex, newIndex);
                 },
                 itemBuilder: (context, index) {
                   final playlist = playlists[index];
