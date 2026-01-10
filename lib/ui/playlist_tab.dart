@@ -17,30 +17,24 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
   void _scrollToCurrentSong(List<String> songPaths) {
     // We need to know which song is currently playing and if it belongs to this playlist
     final playerState = ref.read(playerProvider);
-    print(
-      "AutoScroll: Checking scroll. CurrentPath: ${playerState.currentSongPath}",
-    );
-    // This check is a bit tricky:
-    // If the currently playing song is IN this playlist, we scroll to it.
-    // However, song paths are just strings. We should check if playerState.currentPlaylist matches?
-    // User request: "make playing track focused/visible".
-    // If we are viewing a playlist that contains the currently playing file, we should scroll to it.
-
+    //print(
+    //  "AutoScroll: Checking scroll. CurrentPath: ${playerState.currentSongPath}",
+    //);
     // Simple check: specific file path match.
     if (playerState.currentSongPath != null) {
       final index = songPaths.indexOf(playerState.currentSongPath!);
-      print("AutoScroll: Index in playlist: $index");
+      //print("AutoScroll: Index in playlist: $index");
       if (index != -1) {
         // Scroll to index * itemHeight. Let's estimate itemHeight ~ 72.0 (ListTile default)
         if (_scrollController.hasClients) {
-          print("AutoScroll: Animating to ${index * 65.0}");
+          //print("AutoScroll: Animating to ${index * 65.0}");
           _scrollController.animateTo(
             index * 65.0,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
           );
         } else {
-          print("AutoScroll: Controller has no clients");
+          //print("AutoScroll: Controller has no clients");
         }
       }
     }
@@ -66,7 +60,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
 
   @override
   Widget build(BuildContext context) {
-    print("PlaylistTab: build called");
+    //print("PlaylistTab: build called");
     final playlists = ref.watch(playlistsProvider);
     var selectedPlaylistIndex = ref.watch(selectedPlaylistIndexProvider);
 
@@ -76,7 +70,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
         _scrollToCurrentSong(playlists[next].songPaths);
       }
     });
-    print("PlaylistTab: playlists count: ${playlists.length}");
+    //print("PlaylistTab: playlists count: ${playlists.length}");
     final playerState = ref.watch(playerProvider);
 
     // Safety check if playlists is empty (shouldn't be, due to init)
@@ -111,9 +105,9 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
       }
 
       if (shouldScroll) {
-        print(
-          "AutoScroll: Triggered by listen. Path: ${next.currentSongPath}, Playing: ${next.isPlaying}",
-        );
+        //print(
+        //  "AutoScroll: Triggered by listen. Path: ${next.currentSongPath}, Playing: ${next.isPlaying}",
+        //);
         _scrollToCurrentSong(selectedPlaylist.songPaths);
       }
     });
@@ -121,7 +115,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
     return Column(
       children: [
         // Horizontal Playlists + Add Button
-        Container(
+        SizedBox(
           height: 50,
           child: Stack(
             children: [
@@ -303,15 +297,6 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                   ),
                 ),
               ),
-              // SizedBox(
-              //   height: 30,
-              //   child: IconButton(
-              //     icon: const Icon(Icons.add),
-              //     onPressed: () => _showCreatePlaylistDialog(context),
-              //     tooltip: "Create Playlist",
-              //   ),
-              // ),
-              //const SizedBox(width: 2),
             ],
           ),
         ),

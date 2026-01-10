@@ -12,7 +12,7 @@ class PinnedFoldersWidget extends ConsumerWidget {
     final pinnedFolders = ref.watch(pinnedFoldersProvider);
 
     if (pinnedFolders.isEmpty) return const SizedBox.shrink();
-    print("-----PinnedFoldersRow");
+    //print("-----PinnedFoldersRow");
     return Container(
       height: 50,
       child: ListView.separated(

@@ -79,7 +79,7 @@ class FileBrowserState {
 
 class FileBrowserNotifier extends StateNotifier<FileBrowserState> {
   FileBrowserNotifier(this.ref) : super(FileBrowserState()) {
-    print("FileBrowserNotifier created: $hashCode");
+    //print("FileBrowserNotifier created: $hashCode");
   }
 
   final Ref ref;
@@ -235,10 +235,10 @@ class FileBrowserNotifier extends StateNotifier<FileBrowserState> {
     await navigateTo(Directory(state.currentPath).parent.path);
   }
 
-  Future<void> togglePin(FileBrowserItem item) async {
-    print("togglePin");
-    print(item.isPinned);
-  }
+  // Future<void> togglePin(FileBrowserItem item) async {
+  //   print("togglePin");
+  //   print(item.isPinned);
+  // }
 
   void setScrollPosition(String path, double offset) {
     if (path.isEmpty) return;

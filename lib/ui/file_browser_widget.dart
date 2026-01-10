@@ -463,16 +463,8 @@ class _PathBar extends StatelessWidget {
       ],
     );
 
-    return Container(
+    return SizedBox(
       height: 50,
-      //decoration: BoxDecoration(
-      // border: Border(
-      //   bottom: BorderSide(
-      //     width: 2,
-      //     color: Theme.of(context).colorScheme.primary,
-      //   ),
-      // ),
-      //),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -485,13 +477,6 @@ class _PathBar extends StatelessWidget {
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
-          // IconButton(
-          //   icon: Icon(
-          //     Icons.arrow_upward,
-          //     color: Theme.of(context).colorScheme.onSurface,
-          //   ),
-          //   onPressed: state.isRootScreen ? null : notifier.goBack,
-          // ),
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,

@@ -125,17 +125,16 @@ class PlaylistsNotifier extends StateNotifier<List<Playlist>> {
       album = metadata.albumName;
       durationMs = metadata.trackDuration;
     } catch (e) {
-      print("Error fetching metadata for $path: $e");
+      //print("Error fetching metadata for $path: $e");
     }
 
-    // Use just_audio for duration as requested by user
     try {
       final duration = await player.setFilePath(path);
       if (duration != null) {
         durationMs = duration.inMilliseconds;
       }
     } catch (e) {
-      print("Error fetching duration with just_audio for $path: $e");
+      //print("Error fetching duration with just_audio for $path: $e");
     }
 
     return SongMetadata(
@@ -263,7 +262,7 @@ class PlaylistsNotifier extends StateNotifier<List<Playlist>> {
       final duration = await player.setFilePath(path);
       return duration;
     } catch (e) {
-      print("Error fetching duration for $path: $e");
+      //print("Error fetching duration for $path: $e");
       return null;
     } finally {
       await player.dispose();

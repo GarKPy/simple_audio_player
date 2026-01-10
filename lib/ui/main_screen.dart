@@ -20,7 +20,7 @@ class MainScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    print("-----MainScreen");
+    //print("-----MainScreen");
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -77,5 +77,17 @@ class BrowserTab extends StatelessWidget {
 
 class SettingsTab extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => Center(child: Text("Settings"));
+  Widget build(BuildContext context) => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image(
+          image: AssetImage('assets/audio_player_logo.png'),
+          width: 80,
+          height: 80,
+        ),
+        Text("Made by GarK", style: TextStyle(fontWeight: FontWeight.bold)),
+      ],
+    ),
+  );
 }

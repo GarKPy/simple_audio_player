@@ -7,7 +7,7 @@ class BrowserView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print("-----BrowserView");
+    //print("-----BrowserView");
     return Column(
       children: [
         const PinnedFoldersWidget(),

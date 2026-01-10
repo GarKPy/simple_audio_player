@@ -104,7 +104,7 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
 
     // Listen to the new errorStream as requested
     _player.errorStream.listen((error) {
-      print("Playback error: $error");
+      //print("Playback error: $error");
     });
   }
 
@@ -173,7 +173,7 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
       );
       _player.play();
     } catch (e) {
-      print("Error loading playlist: $e");
+      //print("Error loading playlist: $e");
     }
   }
 
