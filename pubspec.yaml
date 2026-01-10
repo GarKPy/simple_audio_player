@@ -37,9 +37,8 @@ flutter_icons:
   image_path: "assets/audio_player_logo.png"
 
 flutter_native_splash:
-  color: "#00ff00"   # background color
+  color: "#1f1f1f"   # background color
   image: assets/splash.png   # optional logo image
   android_12:
     color: "#1f1f1f"   # background color
     image: assets/splash.png   # optional logo image
-    icon_background_color: "#1f1f1f"
