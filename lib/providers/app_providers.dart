@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:hive_ce_flutter/adapters.dart';
-import 'package:flutter_media_metadata/flutter_media_metadata.dart';
+import 'package:audio_metadata_reader/audio_metadata_reader.dart';
+
 import 'package:just_audio/just_audio.dart';
 import 'dart:io';
 import '../models/playlist.dart';
@@ -119,11 +121,11 @@ class PlaylistsNotifier extends StateNotifier<List<Playlist>> {
     int? durationMs;
 
     try {
-      final metadata = await MetadataRetriever.fromFile(File(path));
-      title = metadata.trackName;
-      artist = metadata.trackArtistNames?.join(', ');
-      album = metadata.albumName;
-      durationMs = metadata.trackDuration;
+      final metadata = readMetadata(File(path), getImage: false);
+      title = metadata.title;
+      artist = metadata.artist;
+      album = metadata.album;
+      durationMs = metadata.duration?.inMilliseconds;
     } catch (e) {
       //print("Error fetching metadata for $path: $e");
     }
