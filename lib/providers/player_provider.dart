@@ -1,13 +1,54 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
+
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import '../models/playlist.dart';
+import 'package:path/path.dart' as p;
 
-class PlayerState {
-  final bool isPlaying;
-  final Duration position;
-  final Duration duration;
+// --- Shared AudioPlayer Instance ---
+// Provides the raw AudioPlayer instance. We use a Provider because we want to
+// ensure it's a singleton (or scoped) and dispose of it when the provider is disposed.
+final audioPlayerProvider = Provider<AudioPlayer>((ref) {
+  final player = AudioPlayer();
+  ref.onDispose(() {
+    player.dispose();
+  });
+  return player;
+});
+
+// --- Stream Providers for High-Frequency Updates ---
+
+final playerPositionProvider = StreamProvider<Duration>((ref) {
+  final player = ref.watch(audioPlayerProvider);
+  return player.positionStream;
+});
+
+final playerDurationProvider = StreamProvider<Duration?>((ref) {
+  final player = ref.watch(audioPlayerProvider);
+  return player.durationStream;
+});
+
+// Provides the full PlayerState from just_audio (playing status + processing state)
+// We use the fully qualified name or ensure no collision.
+// Since we renamed our local class to PlayerMetadata, this is now safe if we don't alias?
+// Wait, we need to make sure 'PlayerState' refers to just_audio's class here.
+// But we are in the same file where we define PlayerMetadata.
+// The import 'package:just_audio/just_audio.dart' provides PlayerState.
+// So if we don't have a local PlayerState, 'PlayerState' refers to just_audio's.
+final audioPlayerStateProvider = StreamProvider<PlayerState>((ref) {
+  final player = ref.watch(audioPlayerProvider);
+  return player.playerStateStream;
+});
+
+final playerPlayingProvider = StreamProvider<bool>((ref) {
+  final player = ref.watch(audioPlayerProvider);
+  return player.playingStream;
+});
+
+// --- Player State (Metadata & Low-Frequency Config) ---
+
+class PlayerMetadata {
+  // Removed high-frequency fields: isPlaying, position, duration
   final String? currentSongPath;
   final String? artist;
   final String? title;
@@ -15,10 +56,7 @@ class PlayerState {
   final bool isShuffleModeEnabled;
   final LoopMode loopMode;
 
-  PlayerState({
-    this.isPlaying = false,
-    this.position = Duration.zero,
-    this.duration = Duration.zero,
+  PlayerMetadata({
     this.currentSongPath,
     this.artist,
     this.title,
@@ -27,10 +65,7 @@ class PlayerState {
     this.loopMode = LoopMode.off,
   });
 
-  PlayerState copyWith({
-    bool? isPlaying,
-    Duration? position,
-    Duration? duration,
+  PlayerMetadata copyWith({
     String? currentSongPath,
     String? artist,
     String? title,
@@ -38,10 +73,7 @@ class PlayerState {
     bool? isShuffleModeEnabled,
     LoopMode? loopMode,
   }) {
-    return PlayerState(
-      isPlaying: isPlaying ?? this.isPlaying,
-      position: position ?? this.position,
-      duration: duration ?? this.duration,
+    return PlayerMetadata(
       currentSongPath: currentSongPath ?? this.currentSongPath,
       artist: artist ?? this.artist,
       title: title ?? this.title,
@@ -52,39 +84,36 @@ class PlayerState {
   }
 }
 
-final playerProvider = StateNotifierProvider<PlayerNotifier, PlayerState>((
+final playerProvider = StateNotifierProvider<PlayerNotifier, PlayerMetadata>((
   ref,
 ) {
-  return PlayerNotifier();
+  final player = ref.watch(audioPlayerProvider);
+  return PlayerNotifier(player);
 });
 
-class PlayerNotifier extends StateNotifier<PlayerState> {
-  late AudioPlayer _player;
+class PlayerNotifier extends StateNotifier<PlayerMetadata> {
+  final AudioPlayer _player;
   Playlist? _activePlaylist;
 
-  PlayerNotifier() : super(PlayerState()) {
+  PlayerNotifier(this._player) : super(PlayerMetadata()) {
     _init();
   }
 
   Future<void> _init() async {
-    _player = AudioPlayer();
     final session = await AudioSession.instance;
     await session.configure(const AudioSessionConfiguration.music());
 
-    // Listen to player streams
-    _player.playerStateStream.listen((playerState) {
-      state = state.copyWith(isPlaying: playerState.playing);
-    });
+    // We no longer update state for position/duration/playing.
+    // Instead we just listen to what's needed for logic or side effects.
 
+    // Side effect: Save position for resume
     _player.positionStream.listen((position) {
-      state = state.copyWith(position: position);
       _savePositionDebounced(position);
     });
 
-    _player.durationStream.listen((duration) {
-      if (duration != null) {
-        state = state.copyWith(duration: duration);
-      }
+    _player.playbackEventStream.listen((event) {
+      // Also save on playback events (like seek)
+      _savePositionDebounced(event.updatePosition);
     });
 
     _player.currentIndexStream.listen((index) {
@@ -94,18 +123,19 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     });
 
     _player.shuffleModeEnabledStream.listen((enabled) {
-      state = state.copyWith(isShuffleModeEnabled: enabled);
+      if (state.isShuffleModeEnabled != enabled) {
+        state = state.copyWith(isShuffleModeEnabled: enabled);
+      }
     });
 
     _player.loopModeStream.listen((mode) {
-      state = state.copyWith(loopMode: mode);
+      if (state.loopMode != mode) {
+        state = state.copyWith(loopMode: mode);
+      }
     });
 
-    _player.playbackEventStream.listen((event) {});
-
-    // Listen to the new errorStream as requested
     _player.errorStream.listen((error) {
-      //print("Playback error: $error");
+      // Handle error logging
     });
   }
 
@@ -136,9 +166,10 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     }
   }
 
-  void _savePositionDebounced(Duration position) {
-    if (_activePlaylist != null) {
+  Future<void> _savePositionDebounced(Duration position) async {
+    if (_activePlaylist != null && _activePlaylist!.isInBox) {
       _activePlaylist!.lastPlayedPosition = position.inMilliseconds;
+      await _activePlaylist!.save();
     }
   }
 
@@ -148,7 +179,11 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     }
   }
 
-  Future<void> playPlaylist(Playlist playlist, {int? initialIndex}) async {
+  Future<void> playPlaylist(
+    Playlist playlist, {
+    int initialIndex = 0,
+    Duration? initialPosition,
+  }) async {
     _activePlaylist = playlist;
     state = state.copyWith(currentPlaylist: playlist);
 
@@ -156,25 +191,18 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
         .map((path) => AudioSource.file(path))
         .toList();
 
-    int startIndex = initialIndex ?? playlist.lastPlayedIndex;
-    int startPosMs = (initialIndex == null)
-        ? playlist.lastPlayedPosition
-        : 0; // If explicit index, start from 0
-
-    // Bounds check
-    if (startIndex >= audioSources.length) startIndex = 0;
-    if (startIndex < 0) startIndex = 0;
-    if (startPosMs < 0) startPosMs = 0;
+    // Safety check just in case
+    if (initialIndex >= audioSources.length) initialIndex = 0;
 
     try {
       await _player.setAudioSources(
         audioSources,
-        initialIndex: startIndex,
-        initialPosition: Duration(milliseconds: startPosMs),
+        initialIndex: initialIndex,
+        initialPosition: initialPosition,
       );
       _player.play();
     } catch (e) {
-      //print("Error loading playlist: $e");
+      print("Error loading playlist: $e");
     }
   }
 
@@ -296,11 +324,14 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
   }
 
   Future<void> seekRelative(Duration offset) async {
-    final newPosition = state.position + offset;
-    final duration = state.duration;
+    // Requires reading current position from player, as it's not in state
+    final currentPosition = _player.position; // Get direct value
+    final newPosition = currentPosition + offset;
+    final duration = _player.duration; // Get direct value
+
     if (newPosition < Duration.zero) {
       await seek(Duration.zero);
-    } else if (newPosition > duration) {
+    } else if (duration != null && newPosition > duration) {
       await seek(duration);
     } else {
       await seek(newPosition);
@@ -318,7 +349,8 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
   @override
   void dispose() {
     _flushStateToHive();
-    _player.dispose();
+    // Reference to _player is managed by audioPlayerProvider (disposed there)
+    // So we don't dispose _player here to avoid double disposal or disposing shared instance
     super.dispose();
   }
 }

@@ -123,7 +123,7 @@ class _FileBrowserWidgetState extends ConsumerState<FileBrowserWidget> {
     FileBrowserNotifier notifier,
     List<String> pinned,
     PinnedFoldersNotifier pinnedNotifier,
-    PlayerState playerState,
+    PlayerMetadata playerState,
   ) {
     if (state.isLoading) {
       return const Center(child: CircularProgressIndicator());

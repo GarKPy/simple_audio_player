@@ -11,33 +11,30 @@ class PlayerArea extends ConsumerStatefulWidget {
 }
 
 class _PlayerAreaState extends ConsumerState<PlayerArea> {
-  bool _showRemaining = true;
-  double? _dragValue; // Moved from build to state class
-  bool _wasPlayingBeforeDrag = false;
+  // Logic from snippet
+  bool _isDragging = false;
+  double? _dragValue;
 
-  String _formatDuration(Duration d) {
+  String _formatDuration(Duration? d) {
+    if (d == null) return "00:00";
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final minutes = twoDigits(d.inMinutes.remainder(60));
     final seconds = twoDigits(d.inSeconds.remainder(60));
-    // Optional: handle hours if needed, but usually song length is mins
     return "$minutes:$seconds";
   }
 
   @override
   Widget build(BuildContext context) {
-    final playerState = ref.watch(playerProvider);
+    // Metadata (Low Frequency)
+    final playerMetadata = ref.watch(playerProvider);
+    final player = ref.watch(audioPlayerProvider); // Direct player for controls
 
-    final effectivePosition = _dragValue != null
-        ? Duration(milliseconds: _dragValue!.toInt())
-        : playerState.position;
+    // High Frequency Providers
+    final positionAsync = ref.watch(playerPositionProvider);
+    final durationAsync = ref.watch(playerDurationProvider);
+    final playerStateAsync = ref.watch(audioPlayerStateProvider);
 
-    final elapsed = _formatDuration(effectivePosition);
-    final total = _formatDuration(playerState.duration);
-    final remaining = _formatDuration(playerState.duration - effectivePosition);
-
-    final timeDisplay = _showRemaining
-        ? "-$remaining / $total"
-        : "$elapsed / $total";
+    final duration = durationAsync.value ?? Duration.zero;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -55,7 +52,7 @@ class _PlayerAreaState extends ConsumerState<PlayerArea> {
               child: Row(
                 children: [
                   Text(
-                    "${playerState.artist ?? 'Artist'} - ${playerState.title ?? 'Song Title'}",
+                    "${playerMetadata.artist ?? 'Artist'} - ${playerMetadata.title ?? 'Song Title'}",
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -68,63 +65,74 @@ class _PlayerAreaState extends ConsumerState<PlayerArea> {
 
           const SizedBox(height: 8),
 
-          // Time Display
-          InkWell(
-            onTap: () {
-              setState(() {
-                _showRemaining = !_showRemaining;
-              });
-            },
-            borderRadius: BorderRadius.circular(4),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8.0,
-                vertical: 4.0,
-              ),
-              child: Text(
-                timeDisplay,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ),
-
-          // Progress Bar
-          Slider(
-            activeColor: const Color.fromARGB(255, 32, 255, 244),
-            inactiveColor: Theme.of(context).colorScheme.onSurfaceVariant,
-            value:
-                (_dragValue ?? playerState.position.inMilliseconds.toDouble())
-                    .clamp(0.0, playerState.duration.inMilliseconds.toDouble()),
-            min: 0.0,
-            max: playerState.duration.inMilliseconds.toDouble(),
-            onChangeStart: (value) {
-              _wasPlayingBeforeDrag = playerState.isPlaying;
-              setState(() {
-                _dragValue = value;
-              });
-              ref.read(playerProvider.notifier).pause();
-            },
-            onChanged: (value) {
-              setState(() {
-                _dragValue = value;
-              });
-            },
-            onChangeEnd: (value) async {
-              await ref
-                  .read(playerProvider.notifier)
-                  .seek(Duration(milliseconds: value.toInt()));
-              // Resume only if it was playing before
-              if (_wasPlayingBeforeDrag) {
-                await ref.read(playerProvider.notifier).play();
+          // Snippet Logic Integration: Position / Duration Labels & Slider
+          positionAsync.when(
+            data: (position) {
+              var displayPosition = position;
+              if (_isDragging && _dragValue != null) {
+                displayPosition = Duration(milliseconds: _dragValue!.round());
               }
-              //await ref.read(playerProvider.notifier).play();
-              setState(() {
-                _dragValue = null;
-              });
+              // Ensure we don't exceed duration for display
+              if (displayPosition > duration) {
+                displayPosition = duration;
+              }
+
+              return Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(_formatDuration(displayPosition)),
+                      Text(_formatDuration(duration)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Slider(
+                    min: 0,
+                    max: duration.inMilliseconds.toDouble() > 0
+                        ? duration.inMilliseconds.toDouble()
+                        : 0.0,
+                    value: (_isDragging && _dragValue != null)
+                        ? _dragValue!
+                        : position.inMilliseconds.toDouble().clamp(
+                            0.0,
+                            duration.inMilliseconds.toDouble() > 0
+                                ? duration.inMilliseconds.toDouble()
+                                : 0.0,
+                          ),
+                    onChanged: (value) {
+                      setState(() {
+                        _isDragging = true;
+                        _dragValue = value;
+                      });
+                    },
+                    onChangeStart: (value) {
+                      // Optional: verify if we want to pause. Snippet says yes.
+                      player.pause();
+                    },
+                    onChangeEnd: (value) {
+                      player.seek(Duration(milliseconds: value.round()));
+                      player.play();
+                      setState(() {
+                        _isDragging = false;
+                        _dragValue = null;
+                      });
+                    },
+                  ),
+                ],
+              );
             },
+            error: (_, __) => const Text("Error loading position"),
+            loading: () => Column(
+              children: [
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [Text("00:00"), Text("00:00")],
+                ),
+                const SizedBox(height: 10),
+                const Slider(value: 0, onChanged: null),
+              ],
+            ),
           ),
 
           // Controls
@@ -136,14 +144,14 @@ class _PlayerAreaState extends ConsumerState<PlayerArea> {
                 IconButton(
                   icon: Icon(
                     Icons.shuffle,
-                    color: playerState.isShuffleModeEnabled
+                    color: playerMetadata.isShuffleModeEnabled
                         ? Theme.of(context).colorScheme.primary
                         : null,
                   ),
                   onPressed: () => ref
                       .read(playerProvider.notifier)
-                      .setShuffleMode(!playerState.isShuffleModeEnabled),
-                ), // Shuffle toggle
+                      .setShuffleMode(!playerMetadata.isShuffleModeEnabled),
+                ),
                 IconButton(
                   icon: const Icon(Icons.replay_5),
                   onPressed: () => ref
@@ -154,30 +162,48 @@ class _PlayerAreaState extends ConsumerState<PlayerArea> {
                   icon: const Icon(Icons.skip_previous),
                   onPressed: () => ref.read(playerProvider.notifier).previous(),
                 ),
-                IconButton(
-                  iconSize: 48,
-                  icon: Icon(
-                    playerState.isPlaying ? Icons.pause : Icons.play_arrow,
-                  ),
-                  onPressed: () {
-                    final notifier = ref.read(playerProvider.notifier);
-                    if (playerState.isPlaying) {
-                      notifier.togglePlay();
-                    } else {
-                      final playlists = ref.read(playlistsProvider);
-                      final selectedIndex = ref.read(
-                        selectedPlaylistIndexProvider,
+                // Play/Pause Button Logic from Snippet (adapted to fit in Row)
+                playerStateAsync.when(
+                  data: (playerState) {
+                    final processingState = playerState.processingState;
+                    final playing = playerState.playing;
+
+                    if (processingState == ProcessingState.loading ||
+                        processingState == ProcessingState.buffering) {
+                      return const SizedBox(
+                        width: 64,
+                        height: 64,
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator(),
+                        ),
                       );
-                      if (selectedIndex < playlists.length) {
-                        final selectedPlaylist = playlists[selectedIndex];
-                        if (playerState.currentPlaylist == selectedPlaylist) {
-                          notifier.togglePlay();
-                        } else {
-                          notifier.playPlaylist(selectedPlaylist);
-                        }
-                      }
+                    } else if (playing != true) {
+                      return IconButton(
+                        icon: const Icon(Icons.play_arrow),
+                        iconSize: 64.0,
+                        onPressed: player.play,
+                      );
+                    } else if (processingState != ProcessingState.completed) {
+                      return IconButton(
+                        icon: const Icon(Icons.pause),
+                        iconSize: 64.0,
+                        onPressed: player.pause,
+                      );
+                    } else {
+                      return IconButton(
+                        icon: const Icon(Icons.replay),
+                        iconSize: 64.0,
+                        onPressed: () => player.seek(Duration.zero),
+                      );
                     }
                   },
+                  error: (_, __) => const Icon(Icons.error),
+                  loading: () => const SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: CircularProgressIndicator(),
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.skip_next),

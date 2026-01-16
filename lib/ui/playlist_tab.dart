@@ -99,15 +99,18 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
         shouldScroll = true;
       }
 
-      // Condition 2: Started playing (and path matches) - useful if paused on a track then resumed/started
-      if (previous?.isPlaying == false && next.isPlaying == true) {
-        shouldScroll = true;
-      }
-
       if (shouldScroll) {
-        //print(
-        //  "AutoScroll: Triggered by listen. Path: ${next.currentSongPath}, Playing: ${next.isPlaying}",
-        //);
+        _scrollToCurrentSong(selectedPlaylist.songPaths);
+      }
+    });
+
+    // Condition 2: Started playing (and path matches)
+    ref.listen(playerPlayingProvider, (previousAsync, nextAsync) {
+      final previous = previousAsync?.value ?? false;
+      final next = nextAsync.value ?? false;
+
+      if (!previous && next) {
+        // Started playing
         _scrollToCurrentSong(selectedPlaylist.songPaths);
       }
     });
@@ -239,20 +242,42 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                                       horizontal: 8.0,
                                       vertical: 2.0,
                                     ),
-                                    child: Text(
-                                      playlist.name,
-                                      style: TextStyle(
-                                        color: isSelected
-                                            ? Theme.of(
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          playlist.name,
+                                          style: TextStyle(
+                                            color: isSelected
+                                                ? Theme.of(context)
+                                                      .colorScheme
+                                                      .onPrimaryContainer
+                                                : Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                            fontWeight: isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                          ),
+                                        ),
+                                        if (isSelected) ...[
+                                          const SizedBox(width: 4),
+                                          InkWell(
+                                            onTap: () {
+                                              ref
+                                                  .read(playerProvider.notifier)
+                                                  .playPlaylist(playlist);
+                                            },
+                                            child: Icon(
+                                              Icons.play_arrow,
+                                              size: 20,
+                                              color: Theme.of(
                                                 context,
-                                              ).colorScheme.onPrimaryContainer
-                                            : Theme.of(
-                                                context,
-                                              ).colorScheme.onSurfaceVariant,
-                                        fontWeight: isSelected
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                      ),
+                                              ).colorScheme.onPrimaryContainer,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
                                 ),
