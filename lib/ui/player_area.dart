@@ -15,6 +15,7 @@ class _PlayerAreaState extends ConsumerState<PlayerArea> {
   // Logic from snippet
   bool _isDragging = false;
   double? _dragValue;
+  bool _showRemainingTime = false;
 
   String _formatDuration(Duration? d) {
     if (d == null) return "00:00";
@@ -78,60 +79,65 @@ class _PlayerAreaState extends ConsumerState<PlayerArea> {
                 displayPosition = duration;
               }
 
-              return Column(
+              return Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(_formatDuration(displayPosition)),
-                      Text(_formatDuration(duration)),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Slider(
-                    min: 0,
-                    max: duration.inMilliseconds.toDouble() > 0
-                        ? duration.inMilliseconds.toDouble()
-                        : 0.0,
-                    value: (_isDragging && _dragValue != null)
-                        ? _dragValue!
-                        : position.inMilliseconds.toDouble().clamp(
-                            0.0,
-                            duration.inMilliseconds.toDouble() > 0
-                                ? duration.inMilliseconds.toDouble()
-                                : 0.0,
-                          ),
-                    onChanged: (value) {
+                  InkWell(
+                    onTap: () {
                       setState(() {
-                        _isDragging = true;
-                        _dragValue = value;
+                        _showRemainingTime = !_showRemainingTime;
                       });
                     },
-                    onChangeStart: (value) {
-                      // Optional: verify if we want to pause. Snippet says yes.
-                      player.pause();
-                    },
-                    onChangeEnd: (value) {
-                      player.seek(Duration(milliseconds: value.round()));
-                      player.play();
-                      setState(() {
-                        _isDragging = false;
-                        _dragValue = null;
-                      });
-                    },
+                    child: Text(
+                      _showRemainingTime
+                          ? "-${_formatDuration(duration - displayPosition)}"
+                          : _formatDuration(displayPosition),
+                      textAlign: TextAlign.start,
+                      maxLines: 1,
+                    ),
                   ),
+                  Expanded(
+                    child: Slider(
+                      min: 0,
+                      max: duration.inMilliseconds.toDouble() > 0
+                          ? duration.inMilliseconds.toDouble()
+                          : 0.0,
+                      value: (_isDragging && _dragValue != null)
+                          ? _dragValue!
+                          : position.inMilliseconds.toDouble().clamp(
+                              0.0,
+                              duration.inMilliseconds.toDouble() > 0
+                                  ? duration.inMilliseconds.toDouble()
+                                  : 0.0,
+                            ),
+                      onChanged: (value) {
+                        setState(() {
+                          _isDragging = true;
+                          _dragValue = value;
+                        });
+                      },
+                      onChangeStart: (value) {
+                        player.pause();
+                      },
+                      onChangeEnd: (value) {
+                        player.seek(Duration(milliseconds: value.round()));
+                        player.play();
+                        setState(() {
+                          _isDragging = false;
+                          _dragValue = null;
+                        });
+                      },
+                    ),
+                  ),
+                  Text(_formatDuration(duration), textAlign: TextAlign.end),
                 ],
               );
             },
             error: (_, __) => const Text("Error loading position"),
-            loading: () => Column(
+            loading: () => const Row(
               children: [
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [Text("00:00"), Text("00:00")],
-                ),
-                const SizedBox(height: 10),
-                const Slider(value: 0, onChanged: null),
+                Text("00:00"),
+                Expanded(child: Slider(value: 0, onChanged: null)),
+                Text("00:00", textAlign: TextAlign.end),
               ],
             ),
           ),
