@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import '../providers/app_providers.dart';
+import '../providers/tab_provider.dart';
 
 class PlayerArea extends ConsumerStatefulWidget {
   const PlayerArea({super.key});
@@ -182,7 +183,41 @@ class _PlayerAreaState extends ConsumerState<PlayerArea> {
                       return IconButton(
                         icon: const Icon(Icons.play_arrow),
                         iconSize: 64.0,
-                        onPressed: player.play,
+                        onPressed: () {
+                          // Context-aware Play Logic
+                          final currentTabIndex = ref.read(tabProvider);
+                          if (currentTabIndex == 1) {
+                            // Playlist Tab
+                            final playlists = ref.read(playlistsProvider);
+                            final selectedIndex = ref.read(
+                              selectedPlaylistIndexProvider,
+                            );
+                            if (selectedIndex < playlists.length) {
+                              final visiblePlaylist = playlists[selectedIndex];
+                              final currentPlaylist =
+                                  playerMetadata.currentPlaylist;
+
+                              if (currentPlaylist?.name !=
+                                  visiblePlaylist.name) {
+                                // Switch to visible playlist
+                                ref
+                                    .read(playerProvider.notifier)
+                                    .playPlaylist(
+                                      visiblePlaylist,
+                                      initialIndex:
+                                          visiblePlaylist.lastPlayedIndex,
+                                      initialPosition: Duration(
+                                        milliseconds:
+                                            visiblePlaylist.lastPlayedPosition,
+                                      ),
+                                    );
+                                return;
+                              }
+                            }
+                          }
+                          // Default behavior
+                          player.play();
+                        },
                       );
                     } else if (processingState != ProcessingState.completed) {
                       return IconButton(

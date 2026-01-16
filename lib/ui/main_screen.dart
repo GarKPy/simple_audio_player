@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:simple_player/models/tab_model.dart';
 import 'package:simple_player/ui/browser_view_widget.dart';
 import 'package:simple_player/ui/playlist_tab.dart';
+import '../providers/tab_provider.dart';
+
 import 'player_area.dart';
 
 final List<AppTab> appTabs = [
@@ -15,44 +17,65 @@ final List<AppTab> appTabs = [
   AppTab(name: 'Settings', icon: Icons.settings, content: SettingsTab()),
 ];
 
-class MainScreen extends ConsumerWidget {
+class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    //print("-----MainScreen");
+  ConsumerState<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends ConsumerState<MainScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: appTabs.length, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        ref.read(tabProvider.notifier).state = _tabController.index;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            // 1. Tabs area with DefaultTabController
+            // 1. Tabs area with TabController
             Expanded(
-              child: DefaultTabController(
-                length: appTabs.length,
-                child: Column(
-                  children: [
-                    // Top tabs
-                    TabBar(
-                      dividerColor: Colors.transparent,
-                      tabs: appTabs
-                          .map(
-                            (tab) => Tab(text: tab.name, icon: Icon(tab.icon)),
-                          )
-                          .toList(),
+              child: Column(
+                children: [
+                  // Top tabs
+                  TabBar(
+                    controller: _tabController,
+                    dividerColor: Colors.transparent,
+                    tabs: appTabs
+                        .map((tab) => Tab(text: tab.name, icon: Icon(tab.icon)))
+                        .toList(),
+                  ),
+                  Divider(
+                    color: Theme.of(context).colorScheme.primary,
+                    thickness: 2,
+                    height: 2,
+                  ),
+                  // Tab content
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: appTabs.map((tab) => tab.content).toList(),
                     ),
-                    Divider(
-                      color: Theme.of(context).colorScheme.primary,
-                      thickness: 2,
-                      height: 2,
-                    ),
-                    // Tab content
-                    Expanded(
-                      child: TabBarView(
-                        children: appTabs.map((tab) => tab.content).toList(),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             Divider(

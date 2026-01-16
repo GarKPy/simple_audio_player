@@ -266,7 +266,15 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                                             onTap: () {
                                               ref
                                                   .read(playerProvider.notifier)
-                                                  .playPlaylist(playlist);
+                                                  .playPlaylist(
+                                                    playlist,
+                                                    initialIndex: playlist
+                                                        .lastPlayedIndex,
+                                                    initialPosition: Duration(
+                                                      milliseconds: playlist
+                                                          .lastPlayedPosition,
+                                                    ),
+                                                  );
                                             },
                                             child: Icon(
                                               Icons.play_arrow,

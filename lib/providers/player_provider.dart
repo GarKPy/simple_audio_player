@@ -173,6 +173,17 @@ class PlayerNotifier extends StateNotifier<PlayerMetadata> {
     }
   }
 
+  Future<void> _saveCurrentPlaybackState() async {
+    if (_activePlaylist != null && _activePlaylist!.isInBox) {
+      final currentIdx = _player.currentIndex;
+      if (currentIdx != null) {
+        _activePlaylist!.lastPlayedIndex = currentIdx;
+      }
+      _activePlaylist!.lastPlayedPosition = _player.position.inMilliseconds;
+      await _activePlaylist!.save();
+    }
+  }
+
   Future<void> _flushStateToHive() async {
     if (_activePlaylist != null && _activePlaylist!.isInBox) {
       await _activePlaylist!.save();
@@ -184,6 +195,9 @@ class PlayerNotifier extends StateNotifier<PlayerMetadata> {
     int initialIndex = 0,
     Duration? initialPosition,
   }) async {
+    // Save state of the previos playlist before switching
+    await _saveCurrentPlaybackState();
+
     _activePlaylist = playlist;
     state = state.copyWith(currentPlaylist: playlist);
 
@@ -192,7 +206,10 @@ class PlayerNotifier extends StateNotifier<PlayerMetadata> {
         .toList();
 
     // Safety check just in case
-    if (initialIndex >= audioSources.length) initialIndex = 0;
+    if (initialIndex >= audioSources.length) {
+      initialIndex = 0;
+      initialPosition = Duration.zero;
+    }
 
     try {
       await _player.setAudioSources(
@@ -211,6 +228,7 @@ class PlayerNotifier extends StateNotifier<PlayerMetadata> {
     final isSameContext = _activePlaylist?.name == sourcePlaylist.name;
 
     if (!isSameContext) {
+      await _saveCurrentPlaybackState();
       // Switch context:
       // Keep current playing item, then add the 'playNext' item, then the rest of the new playlist
       final currentPath = state.currentSongPath;
