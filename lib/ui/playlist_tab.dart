@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../providers/app_providers.dart';
 import '../models/playlist.dart';
 import 'package:path/path.dart' as p;
@@ -12,29 +13,23 @@ class PlaylistTab extends ConsumerStatefulWidget {
 }
 
 class _PlaylistTabState extends ConsumerState<PlaylistTab> {
-  final ScrollController _scrollController = ScrollController();
+  final ItemScrollController _itemScrollController = ItemScrollController();
+  final ItemPositionsListener _itemPositionsListener =
+      ItemPositionsListener.create();
 
   void _scrollToCurrentSong(List<String> songPaths) {
     // We need to know which song is currently playing and if it belongs to this playlist
     final playerState = ref.read(playerProvider);
-    //print(
-    //  "AutoScroll: Checking scroll. CurrentPath: ${playerState.currentSongPath}",
-    //);
-    // Simple check: specific file path match.
     if (playerState.currentSongPath != null) {
       final index = songPaths.indexOf(playerState.currentSongPath!);
-      //print("AutoScroll: Index in playlist: $index");
       if (index != -1) {
-        // Scroll to index * itemHeight. Let's estimate itemHeight ~ 72.0 (ListTile default)
-        if (_scrollController.hasClients) {
-          //print("AutoScroll: Animating to ${index * 65.0}");
-          _scrollController.animateTo(
-            index * 65.0,
+        if (_itemScrollController.isAttached) {
+          _itemScrollController.scrollTo(
+            index: index,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
+            alignment: 0.5, // Center the item
           );
-        } else {
-          //print("AutoScroll: Controller has no clients");
         }
       }
     }
@@ -54,7 +49,6 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
 
   @override
   void dispose() {
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -123,7 +117,6 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
           child: Stack(
             children: [
               ReorderableListView.builder(
-                //ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 // Removes background's shade
@@ -318,9 +311,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                       ],
                     ),
                   ),
-                  //color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: InkWell(
-                    //splashColor: Colors.red,
                     onTap: () => _showCreatePlaylistDialog(context),
                     child: Icon(
                       Icons.add,
@@ -347,8 +338,9 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 )
-              : ListView.builder(
-                  controller: _scrollController,
+              : ScrollablePositionedList.builder(
+                  itemScrollController: _itemScrollController,
+                  itemPositionsListener: _itemPositionsListener,
                   itemCount: selectedPlaylist.songPaths.length,
                   itemBuilder: (context, index) {
                     final songPath = selectedPlaylist.songPaths[index];
