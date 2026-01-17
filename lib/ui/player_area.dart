@@ -118,6 +118,7 @@ class _PlayerAreaState extends ConsumerState<PlayerArea> {
                       onChangeStart: (value) {
                         player.pause();
                       },
+
                       onChangeEnd: (value) {
                         player.seek(Duration(milliseconds: value.round()));
                         player.play();
@@ -143,8 +144,8 @@ class _PlayerAreaState extends ConsumerState<PlayerArea> {
           ),
 
           // Controls
-          FittedBox(
-            fit: BoxFit.scaleDown,
+          SizedBox(
+            height: 80,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
