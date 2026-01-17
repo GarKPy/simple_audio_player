@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:audio_service/audio_service.dart';
 import '../models/playlist.dart';
+import '../services/audio_handler.dart';
 import 'package:path/path.dart' as p;
 
 // --- Shared AudioPlayer Instance ---
@@ -14,6 +15,12 @@ final audioPlayerProvider = Provider<AudioPlayer>((ref) {
     player.dispose();
   });
   return player;
+});
+
+// --- AudioHandler Provider ---
+// Provides the audio handler for lock screen controls
+final audioHandlerProvider = Provider<SimpleAudioHandler?>((ref) {
+  return null; // Will be overridden in main.dart
 });
 
 // --- Stream Providers for High-Frequency Updates ---
@@ -88,14 +95,16 @@ final playerProvider = StateNotifierProvider<PlayerNotifier, PlayerMetadata>((
   ref,
 ) {
   final player = ref.watch(audioPlayerProvider);
-  return PlayerNotifier(player);
+  final handler = ref.watch(audioHandlerProvider);
+  return PlayerNotifier(player, handler);
 });
 
 class PlayerNotifier extends StateNotifier<PlayerMetadata> {
   final AudioPlayer _player;
+  final SimpleAudioHandler? _handler;
   Playlist? _activePlaylist;
 
-  PlayerNotifier(this._player) : super(PlayerMetadata()) {
+  PlayerNotifier(this._player, this._handler) : super(PlayerMetadata()) {
     _init();
   }
 
@@ -157,6 +166,19 @@ class PlayerNotifier extends StateNotifier<PlayerMetadata> {
       currentSongPath: path,
       title: songMeta?.title ?? path.split('/').last,
       artist: songMeta?.artist ?? 'Unknown Artist',
+    );
+
+    // Update lock screen metadata
+    _handler?.updateMetadata(
+      MediaItem(
+        id: path,
+        album: _activePlaylist?.name ?? p.dirname(path).split(p.separator).last,
+        title: state.title!,
+        artist: state.artist!,
+        duration: songMeta?.durationMs != null
+            ? Duration(milliseconds: songMeta!.durationMs!)
+            : null,
+      ),
     );
 
     // Save functionality

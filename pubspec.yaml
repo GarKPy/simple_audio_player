@@ -22,6 +22,7 @@ dependencies:
   flutter_native_splash: ^2.4.7
   audio_metadata_reader: ^1.4.2
   scrollable_positioned_list: ^0.3.8
+  audio_service: ^0.18.18
 
 dev_dependencies:
   flutter_test:
