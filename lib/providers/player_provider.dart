@@ -212,6 +212,10 @@ class PlayerNotifier extends StateNotifier<PlayerMetadata> {
     }
 
     try {
+      // Load and apply playlist-specific settings
+      await _player.setShuffleModeEnabled(playlist.shuffle);
+      await _player.setLoopMode(_intToLoopMode(playlist.repeatMode));
+
       await _player.setAudioSources(
         audioSources,
         initialIndex: initialIndex,
@@ -358,10 +362,40 @@ class PlayerNotifier extends StateNotifier<PlayerMetadata> {
 
   Future<void> setShuffleMode(bool enabled) async {
     await _player.setShuffleModeEnabled(enabled);
+    if (_activePlaylist != null && _activePlaylist!.isInBox) {
+      _activePlaylist!.shuffle = enabled;
+      await _activePlaylist!.save();
+    }
   }
 
   Future<void> setLoopMode(LoopMode mode) async {
     await _player.setLoopMode(mode);
+    if (_activePlaylist != null && _activePlaylist!.isInBox) {
+      _activePlaylist!.repeatMode = _loopModeToInt(mode);
+      await _activePlaylist!.save();
+    }
+  }
+
+  int _loopModeToInt(LoopMode mode) {
+    switch (mode) {
+      case LoopMode.off:
+        return 0;
+      case LoopMode.one:
+        return 1;
+      case LoopMode.all:
+        return 2;
+    }
+  }
+
+  LoopMode _intToLoopMode(int val) {
+    switch (val) {
+      case 1:
+        return LoopMode.one;
+      case 2:
+        return LoopMode.all;
+      default:
+        return LoopMode.off;
+    }
   }
 
   @override
