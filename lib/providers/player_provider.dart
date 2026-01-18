@@ -398,6 +398,12 @@ class PlayerNotifier extends StateNotifier<PlayerMetadata> {
     }
   }
 
+  Future<void> stopPlayback() async {
+    await _player.stop();
+    _activePlaylist = null;
+    state = PlayerMetadata();
+  }
+
   int _loopModeToInt(LoopMode mode) {
     switch (mode) {
       case LoopMode.off:

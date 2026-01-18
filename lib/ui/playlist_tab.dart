@@ -159,22 +159,56 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                                 playlist,
                               );
                             },
-                            onDismissed: (direction) {
-                              ref
+                            onDismissed: (direction) async {
+                              // Check if currently playing track is from this playlist
+                              final currentSongPath =
+                                  playerState.currentSongPath;
+                              final isPlayingFromThisPlaylist =
+                                  currentSongPath != null &&
+                                  playlist.songPaths.contains(currentSongPath);
+
+                              if (isPlayingFromThisPlaylist) {
+                                // Stop playback if playing from dismissed playlist
+                                await ref
+                                    .read(playerProvider.notifier)
+                                    .stopPlayback();
+                              }
+
+                              // Delete the playlist
+                              await ref
                                   .read(playlistsProvider.notifier)
                                   .deletePlaylist(playlist);
-                              final currentIndex = ref.read(
-                                selectedPlaylistIndexProvider,
+
+                              // Determine which playlist to display next
+                              final updatedPlaylists = ref.read(
+                                playlistsProvider,
                               );
-                              if (currentIndex >= 1) {
-                                ref
-                                        .read(
-                                          selectedPlaylistIndexProvider
-                                              .notifier,
-                                        )
-                                        .state =
-                                    0;
+                              int newIndex = 0; // Default to Favorites
+
+                              if (!isPlayingFromThisPlaylist &&
+                                  currentSongPath != null) {
+                                // Find which playlist contains the currently playing track
+                                for (
+                                  int i = 0;
+                                  i < updatedPlaylists.length;
+                                  i++
+                                ) {
+                                  if (updatedPlaylists[i].songPaths.contains(
+                                    currentSongPath,
+                                  )) {
+                                    newIndex = i;
+                                    break;
+                                  }
+                                }
                               }
+
+                              // Update selected playlist index
+                              ref
+                                      .read(
+                                        selectedPlaylistIndexProvider.notifier,
+                                      )
+                                      .state =
+                                  newIndex;
                             },
                             background: Container(
                               color: Colors.red,
